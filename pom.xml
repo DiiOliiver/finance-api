@@ -1,0 +1,67 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>4.1.1</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>br.com.finance</groupId>
+    <artifactId>finance-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <properties>
+        <java.version>25</java.version>
+        <aws-sdk.version>2.55.16</aws-sdk.version>
+        <mongock.version>5.5.1</mongock.version>
+        <archunit.version>1.5.1</archunit.version>
+        <wiremock.version>3.13.2</wiremock.version>
+    </properties>
+
+    <modules>
+        <module>shared/financas-eventos</module>
+        <module>shared/financas-commons</module>
+        <module>api-gateway</module>
+        <module>conta-service</module>
+        <module>transacao-service</module>
+        <module>orcamento-service</module>
+        <module>documento-service</module>
+        <module>assistente-ia-service</module>
+        <module>notificacao-service</module>
+    </modules>
+
+    <!-- dependencyManagement com BOMs (Spring Cloud, Spring AI, AWS SDK, Mongock)
+         e pluginManagement (Failsafe, JaCoCo) ficam aqui -->
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws-sdk.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.mongock</groupId>
+                <artifactId>mongock-bom</artifactId>
+                <version>${mongock.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.tngtech.archunit</groupId>
+                <artifactId>archunit-junit5</artifactId>
+                <version>${archunit.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.wiremock</groupId>
+                <artifactId>wiremock-standalone</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <!-- spring-cloud-dependencies e spring-ai-bom o Initializr já gera -->
+        </dependencies>
+    </dependencyManagement>
+</project>

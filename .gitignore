@@ -1,0 +1,79 @@
+### Maven ###
+target/
+!**/src/main/**/target/
+!**/src/test/**/target/
+.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/.develocity/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.flattened-pom.xml
+
+### Spring Boot ###
+HELP.md
+
+### Segredos e configuração local ###
+# O .env nunca é versionado; o modelo fica em deploy/.env.example
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+### Claude Code ###
+# Preferências locais de cada desenvolvedor
+.claude/settings.local.json
+
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+### Eclipse / STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Logs e temporários ###
+logs/
+*.log
+*.tmp
+*.swp
+*~
+
+### Sistema operacional ###
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### Dados locais de containers ###
+# Volumes montados pelo docker-compose, se forem criados dentro de deploy/
+deploy/data/
+deploy/volumes/

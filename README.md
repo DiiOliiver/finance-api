@@ -1,0 +1,331 @@
+# 💰 Gerenciamento de Finanças
+
+Sistema de gerenciamento de finanças pessoais construído em **microsserviços**, com arquitetura em camadas (**domain / application / infra**) e **circuit breaker** para manter o sistema funcionando mesmo quando uma dependência falha.
+
+O usuário cadastra contas, lança receitas e despesas, anexa comprovantes, acompanha orçamentos e recebe categorização automática e insights gerados por IA (Claude).
+
+> 📚 Documentação detalhada na pasta [`docs/`](docs/README.md).
+
+---
+
+## Sumário
+
+- [Stack](#stack)
+- [Microsserviços](#microsserviços)
+- [Estrutura do repositório](#estrutura-do-repositório)
+- [Pré-requisitos](#pré-requisitos)
+- [Configuração](#configuração)
+- [Levantando o ambiente](#levantando-o-ambiente)
+- [Executando os serviços](#executando-os-serviços)
+- [Executando os testes](#executando-os-testes)
+- [Observabilidade](#observabilidade)
+- [Portas e acessos](#portas-e-acessos)
+- [Problemas comuns](#problemas-comuns)
+
+---
+
+## Stack
+
+| Categoria | Tecnologia |
+|---|---|
+| Linguagem | Java 25 |
+| Framework | Spring Boot 4.1.1 |
+| Build | Maven (multi-módulo) |
+| Configuração | YAML (`application.yml`) |
+| Banco de dados | MongoDB (IDs em UUID) |
+| Object storage | RustFS (compatível com API S3) |
+| Mensageria | RabbitMQ |
+| IA | Claude (Anthropic) via Spring AI |
+| Resiliência | Resilience4j (Circuit Breaker, Retry, Time Limiter) |
+| Containers | Docker / Docker Compose |
+| Testes | JUnit 5, Mockito, Testcontainers |
+| Observabilidade | OpenTelemetry, Jaeger, Prometheus, Grafana |
+
+---
+
+## Microsserviços
+
+| Serviço | Porta | Responsabilidade |
+|---|---|---|
+| `api-gateway` | 8080 | Porta de entrada única, autenticação e roteamento |
+| `conta-service` | 8081 | Contas, carteiras e saldo |
+| `transacao-service` | 8082 | Receitas e despesas |
+| `orcamento-service` | 8083 | Orçamentos, metas e alertas |
+| `documento-service` | 8084 | Comprovantes e notas fiscais (RustFS) |
+| `assistente-ia-service` | 8085 | Categorização e insights com Claude |
+| `notificacao-service` | 8086 | E-mail e push |
+
+---
+
+## Estrutura do repositório
+
+Monorepo: todos os microsserviços em um único repositório Git, cada um como módulo Maven.
+
+```
+finance-api/
+├── pom.xml                  ← POM pai e agregador (todos os módulos)
+├── mvnw / mvnw.cmd / .mvn/  ← Maven Wrapper
+├── README.md
+├── CLAUDE.md                ← regras para o Claude trabalhar no projeto
+├── docs/                    ← documentação
+├── deploy/                  ← Docker Compose, .env.example e configs da infraestrutura
+├── shared/                  ← contratos de eventos e utilitários comuns
+├── api-gateway/
+├── conta-service/
+├── transacao-service/
+├── orcamento-service/
+├── documento-service/
+├── assistente-ia-service/
+└── notificacao-service/
+```
+
+Cada serviço segue as camadas `domain` / `application` / `infra`. Detalhes em [`docs/estrutura-de-pastas.md`](docs/estrutura-de-pastas.md).
+
+---
+
+## Pré-requisitos
+
+| Ferramenta | Versão mínima | Verificar com |
+|---|---|---|
+| JDK | 25 | `java -version` |
+| Maven | 3.9+ (ou use o `./mvnw` do projeto) | `mvn -v` |
+| Docker | 24+ | `docker -v` |
+| Docker Compose | v2 | `docker compose version` |
+| Chave da API Anthropic | — | [console.anthropic.com](https://console.anthropic.com) |
+
+> O Docker precisa estar **rodando** também para os testes de integração (Testcontainers).
+
+---
+
+## Configuração
+
+### 1. Clonar o repositório
+
+```bash
+git clone <url-do-repositorio> finance-api
+cd finance-api
+```
+
+### 2. Criar o arquivo de variáveis de ambiente
+
+```bash
+cp deploy/.env.example deploy/.env
+```
+
+Edite `deploy/.env`:
+
+```dotenv
+# IA
+ANTHROPIC_API_KEY=sk-ant-xxxxxxxx
+
+# MongoDB
+MONGO_ROOT_USER=financas
+MONGO_ROOT_PASSWORD=financas
+
+# RabbitMQ
+RABBITMQ_USER=financas
+RABBITMQ_PASSWORD=financas
+
+# RustFS (S3)
+RUSTFS_ACCESS_KEY=rustfsadmin
+RUSTFS_SECRET_KEY=rustfsadmin
+RUSTFS_BUCKET_COMPROVANTES=comprovantes
+
+# Observabilidade
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+> ⚠️ Nunca faça commit do `.env`. Ele já está no `.gitignore`.
+
+### 3. Perfis do Spring
+
+| Perfil | Uso |
+|---|---|
+| `local` | Desenvolvimento na máquina, apontando para o Docker Compose |
+| `test` | Testes automatizados (Testcontainers) |
+| `prod` | Produção, com valores vindos de variáveis de ambiente/secrets |
+
+Para ativar um perfil: `SPRING_PROFILES_ACTIVE=local`.
+
+---
+
+## Levantando o ambiente
+
+### Opção A — Só a infraestrutura (para rodar os serviços pela IDE)
+
+Sobe MongoDB, RabbitMQ, RustFS, OTel Collector, Jaeger, Prometheus e Grafana:
+
+```bash
+docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+```
+
+Confira se tudo está saudável:
+
+```bash
+docker compose -f deploy/docker-compose.yml ps
+```
+
+### Opção B — Tudo em containers (infra + microsserviços)
+
+```bash
+# 1. Gera os jars
+./mvnw clean package -DskipTests
+
+# 2. Sobe infra + serviços
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.services.yml \
+  --env-file deploy/.env up -d --build
+```
+
+### Derrubando o ambiente
+
+```bash
+# Para os containers mantendo os dados
+docker compose -f deploy/docker-compose.yml down
+
+# Para e APAGA os volumes (banco, filas e arquivos)
+docker compose -f deploy/docker-compose.yml down -v
+```
+
+---
+
+## Executando os serviços
+
+Com a infraestrutura de pé (Opção A):
+
+```bash
+# Compilar tudo uma vez
+./mvnw clean install -DskipTests
+
+# Rodar um serviço específico
+./mvnw -pl conta-service spring-boot:run -Dspring-boot.run.profiles=local
+./mvnw -pl transacao-service spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Ordem recomendada de subida:
+
+1. `conta-service`
+2. `transacao-service`, `orcamento-service`, `documento-service`
+3. `assistente-ia-service`, `notificacao-service`
+4. `api-gateway`
+
+> Graças ao circuit breaker, a ordem não é obrigatória: se um serviço ainda não subiu, os outros usam o fallback e se recuperam sozinhos quando ele ficar disponível.
+
+### Testando rapidamente
+
+```bash
+# Saúde do serviço
+curl http://localhost:8082/actuator/health
+
+# Criar uma conta
+curl -X POST http://localhost:8080/api/contas \
+  -H "Content-Type: application/json" \
+  -d '{"nome": "Conta Corrente", "saldoInicial": 1000.00, "moeda": "BRL"}'
+
+# Lançar uma despesa (use o id retornado acima)
+curl -X POST http://localhost:8080/api/transacoes \
+  -H "Content-Type: application/json" \
+  -d '{"contaId": "<uuid>", "tipo": "DESPESA", "valor": 59.90, "descricao": "Mercado"}'
+```
+
+---
+
+## Executando os testes
+
+| Tipo | Sufixo da classe | Plugin Maven | Precisa de Docker? |
+|---|---|---|---|
+| Unitário (domain/application) | `*Test` | Surefire | Não |
+| Integração (infra) | `*IT` | Failsafe | Sim (Testcontainers) |
+
+```bash
+# Só testes unitários (rápido)
+./mvnw test
+
+# Unitários + integração
+./mvnw verify
+
+# Só um serviço
+./mvnw -pl transacao-service verify
+
+# Só uma classe
+./mvnw -pl transacao-service test -Dtest=RegistrarTransacaoServiceTest
+
+# Só um teste de integração
+./mvnw -pl transacao-service verify -Dit.test=TransacaoMongoRepositoryAdapterIT
+
+# Pular os testes de integração
+./mvnw verify -DskipITs
+```
+
+Relatório de cobertura (JaCoCo), gerado após `verify`:
+
+```
+<servico>/target/site/jacoco/index.html
+```
+
+> Mais detalhes sobre a estratégia de testes em [`docs/etapas.md`](docs/etapas.md#etapa-8--testes).
+
+---
+
+## Observabilidade
+
+| Ferramenta | URL | Para quê |
+|---|---|---|
+| Jaeger | http://localhost:16686 | Ver o caminho de cada requisição (traces) |
+| Prometheus | http://localhost:9090 | Consultar métricas |
+| Grafana | http://localhost:3000 (admin/admin) | Dashboards e alertas |
+
+Métricas úteis no Prometheus:
+
+```promql
+# Estado dos circuit breakers (1 = estado atual)
+resilience4j_circuitbreaker_state
+
+# Taxa de falha por circuito
+resilience4j_circuitbreaker_failure_rate
+
+# Latência das requisições HTTP
+http_server_requests_seconds_bucket
+```
+
+---
+
+## Portas e acessos
+
+| Componente | Porta | Credenciais (local) |
+|---|---|---|
+| API Gateway | 8080 | — |
+| MongoDB | 27017 | `financas` / `financas` |
+| RabbitMQ (AMQP) | 5672 | `financas` / `financas` |
+| RabbitMQ (painel) | 15672 | `financas` / `financas` |
+| RustFS (API S3) | 9000 | `rustfsadmin` / `rustfsadmin` |
+| RustFS (console) | 9001 | `rustfsadmin` / `rustfsadmin` |
+| OTel Collector | 4317 (gRPC) / 4318 (HTTP) | — |
+| Jaeger | 16686 | — |
+| Prometheus | 9090 | — |
+| Grafana | 3000 | `admin` / `admin` |
+
+---
+
+## Problemas comuns
+
+| Sintoma | Causa provável | Solução |
+|---|---|---|
+| Testes `*IT` falham com "Could not find a valid Docker environment" | Docker parado | Inicie o Docker e rode de novo |
+| `Unsupported class file major version` | JDK diferente do 25 | Ajuste `JAVA_HOME` para o JDK 25 |
+| Transações salvas como `NAO_CLASSIFICADA` | Circuit breaker da IA aberto ou `ANTHROPIC_API_KEY` inválida | Verifique a chave e `/actuator/circuitbreakers` |
+| Erro 503 ao lançar transação | `conta-service` fora do ar (circuito aberto) | Suba o `conta-service`; o circuito fecha sozinho |
+| UUID aparece como binário estranho no Mongo | Representação de UUID não configurada | Confira `representation.uuid: standard` no YAML |
+| Porta já em uso | Outro processo usando a porta | `docker compose down` ou altere a porta no `.env` |
+
+---
+
+## Documentação
+
+| Documento | Conteúdo |
+|---|---|
+| [Visão geral da documentação](docs/README.md) | Índice e por onde começar |
+| [Arquitetura](docs/arquitetura.md) | Microsserviços, camadas, circuit breaker, mensageria, observabilidade |
+| [Estrutura de pastas](docs/estrutura-de-pastas.md) | O que vai em cada pasta e pacote |
+| [Fluxos](docs/fluxos.md) | Passo a passo dos principais fluxos com diagramas |
+| [Etapas](docs/etapas.md) | Ordem de construção do projeto |
+| [Conceitos](docs/conceitos.md) | Explicação simples e glossário |
