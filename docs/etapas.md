@@ -28,8 +28,8 @@ Roteiro sugerido para construir o projeto. Cada etapa entrega algo que funciona 
   - `parent`: `spring-boot-starter-parent` 4.1.1
   - `java.version` = 25
   - `<modules>` com `shared/*` e todos os serviços
-  - `dependencyManagement` com Spring Cloud, Spring AI, Testcontainers, AWS SDK v2, Mongock
-  - Plugins: Surefire (`*Test`), Failsafe (`*IT`), JaCoCo
+  - `dependencyManagement` com Spring Cloud, Spring AI, AWS SDK v2, Mongock, ArchUnit e WireMock (Testcontainers já vem gerenciado pelo Spring Boot)
+  - Plugins: Surefire (`*Test`), Failsafe (`*IT`), JaCoCo (meta de 80% em `domain` e `application`, checada no `verify`)
 - [ ] Gerar cada serviço no Spring Initializr (Maven, Java 25, Boot 4.1.1, YAML, Group `br.com.finance`) e colocar a pasta na raiz.
 - [ ] Em cada serviço gerado:
   - trocar o `<parent>` para `finance-api` com `<relativePath>../pom.xml</relativePath>`
