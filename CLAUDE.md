@@ -73,6 +73,20 @@ finance-api/
 - Não crie `.git`, `.gitignore`, `mvnw` ou `.mvn/` dentro dos serviços. Eles existem só na raiz.
 - Um serviço nunca depende de outro serviço no Maven. A única dependência permitida entre módulos é com os módulos de `shared/`.
 
+## Git
+
+Fluxo durante o desenvolvimento: **develop → branch → pull request → develop** (detalhes no `README.md`, seção "Fluxo de trabalho").
+
+- Nunca faça commit em `main`, `develop` ou `homol`. O hook `protect-branches.sh` bloqueia.
+- Antes de alterar código, crie a branch a partir da `develop` atualizada.
+- Pull requests sempre têm a `develop` como base, e o corpo segue o `.github/pull_request_template.md` (tarefa, o que mudou, como testar e checklist). Marque no checklist só o que foi de fato verificado.
+- Branches e commits seguem o Conventional Commits; o hook `conventional-commits.sh` bloqueia o que estiver fora do padrão.
+
+| | Formato | Tipos | Exemplo |
+|---|---|---|---|
+| Branch | `<tipo>/<tarefa>-<descrição>` | `feature`, `refactor`, `bugfix`, `hotfix`, `release`, `chore` | `feature/e2-t1-account-domain` |
+| Commit | `<tipo>: <descrição>` | `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore` | `feat: add account domain` |
+
 ## Regras de arquitetura (obrigatórias)
 
 ### Dependências entre camadas

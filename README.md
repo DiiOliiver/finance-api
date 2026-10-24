@@ -18,6 +18,7 @@ O usuário cadastra contas, lança receitas e despesas, anexa comprovantes, acom
 - [Levantando o ambiente](#levantando-o-ambiente)
 - [Executando os serviços](#executando-os-serviços)
 - [Executando os testes](#executando-os-testes)
+- [Fluxo de trabalho](#fluxo-de-trabalho)
 - [Observabilidade](#observabilidade)
 - [Portas e acessos](#portas-e-acessos)
 - [Problemas comuns](#problemas-comuns)
@@ -263,6 +264,70 @@ Relatório de cobertura (JaCoCo), gerado após `verify`:
 ```
 
 > Mais detalhes sobre a estratégia de testes em [`docs/etapas.md`](docs/etapas.md#etapa-8--testes).
+
+### Hooks do Claude Code
+
+Configurados em [`.claude/settings.json`](.claude/settings.json), com scripts bash em `.claude/hooks/` (sem Node, `jq` ou Python; no Windows usam o Git Bash):
+
+| Hook | Quando roda | O que faz |
+|---|---|---|
+| `block-mvn.sh` | Antes de comandos de shell | Bloqueia `mvn`; o projeto usa sempre `./mvnw` |
+| `protect-env.sh` | Antes de editar arquivos ou rodar comandos de shell | Bloqueia alterações em `.env` (o `.env.example` é liberado) |
+| `protect-branches.sh` | Antes de `git commit` | Bloqueia commit direto em `main`, `develop` e `homol` (ver [Fluxo de trabalho](#fluxo-de-trabalho)) |
+| `conventional-commits.sh` | Antes de criar branch e de `git commit` | Bloqueia nomes de branch e mensagens de commit fora do [padrão](#padrão-de-nomes) |
+| `test-before-commit.sh` | Antes de `git commit` | Roda `./mvnw test` nos módulos alterados (todos, se mudou o `pom.xml` raiz ou `shared/`) e bloqueia o commit se algum teste falhar |
+
+Os hooks valem para as ações do Claude. Commits feitos direto no terminal não passam por eles.
+
+---
+
+## Fluxo de trabalho
+
+Durante as etapas de desenvolvimento, toda alteração segue **develop → branch → pull request → develop**:
+
+```mermaid
+gitGraph
+    commit id: "main"
+    branch develop
+    checkout develop
+    commit id: "develop"
+    branch feature/e2-t1-account-domain
+    checkout feature/e2-t1-account-domain
+    commit id: "domínio de conta"
+    commit id: "testes"
+    checkout develop
+    merge feature/e2-t1-account-domain id: "PR aprovado"
+```
+
+1. Atualize a `develop` e crie a branch a partir dela:
+   ```bash
+   git switch develop
+   git pull
+   git switch -c feature/e2-t1-account-domain
+   ```
+2. Faça os commits na branch, com os testes passando.
+3. Envie a branch e abra um pull request **para a `develop`**. O corpo já vem do [template](.github/pull_request_template.md): preencha a tarefa, o que mudou, como testar e o checklist.
+4. Depois do merge, a branch pode ser apagada.
+
+| Branch | Uso |
+|---|---|
+| `develop` | Integração do desenvolvimento; recebe código só por pull request |
+| `homol` | Homologação; nunca recebe commit direto |
+| `main` | Produção; nunca recebe commit direto |
+| `<tipo>/<tarefa>-<descrição>` | Trabalho de uma tarefa, criada a partir da `develop` |
+
+### Padrão de nomes
+
+Branches e commits seguem o [Conventional Commits](https://www.conventionalcommits.org/pt-br/v1.0.0/). O hook `conventional-commits.sh` bloqueia nomes fora do padrão.
+
+| | Formato | Tipos | Exemplo |
+|---|---|---|---|
+| Branch | `<tipo>/<tarefa>-<descrição>` | `feature`, `refactor`, `bugfix`, `hotfix`, `release`, `chore` | `feature/e2-t1-account-domain` |
+| Commit | `<tipo>: <descrição>` | `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore` | `feat: add account domain` |
+
+- `<tarefa>` é o código da tarefa no quadro (`e2-t1`); a descrição da branch é curta, em inglês, minúscula e em kebab-case.
+- No commit, o espaço depois dos dois-pontos é obrigatório, como no Conventional Commits. Escopo e `!` de breaking change são aceitos: `fix(conta): handle missing account`, `refactor!: rename ports`.
+- Só a primeira linha do commit é validada; o corpo é livre.
 
 ---
 
