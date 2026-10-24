@@ -26,18 +26,18 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
 ## Etapa 0 — Fundação
 
 - [ ] Criar o repositório `finance-api` com `README.md`, `CLAUDE.md`, `.gitignore`, `.editorconfig` e as pastas `docs/` e `deploy/`.
-- [ ] Criar o `pom.xml` pai e agregador (`packaging` = `pom`):
+- [x] Criar o `pom.xml` pai e agregador (`packaging` = `pom`):
   - `parent`: `spring-boot-starter-parent` 4.1.1
   - `java.version` = 25
   - `<modules>` com `shared/*` e todos os serviços
   - `dependencyManagement` com Spring Cloud, Spring AI, AWS SDK v2, Mongock, ArchUnit e WireMock (Testcontainers já vem gerenciado pelo Spring Boot)
   - Plugins: Surefire (`*Test`), Failsafe (`*IT`), JaCoCo (meta de 80% em `domain` e `application`, checada no `verify`)
-- [ ] Gerar cada serviço no Spring Initializr (Maven, Java 25, Boot 4.1.1, YAML, Group `br.com.finance`) e colocar a pasta na raiz.
-- [ ] Em cada serviço gerado:
+- [x] Gerar cada serviço no Spring Initializr (Maven, Java 25, Boot 4.1.1, YAML, Group `br.com.finance`) e colocar a pasta na raiz.
+- [x] Em cada serviço gerado:
   - trocar o `<parent>` para `finance-api` com `<relativePath>../pom.xml</relativePath>`
-  - apagar `.git`, `.gitignore`, `mvnw`, `mvnw.cmd`, `.mvn/` (ficam só na raiz)
-  - remover do POM do serviço versões já gerenciadas pelo pai
-- [ ] Mover um Maven Wrapper para a raiz.
+  - apagar `.git`, `.gitignore`, `.gitattributes`, `HELP.md`, `mvnw`, `mvnw.cmd`, `.mvn/` (os de Git e do wrapper ficam só na raiz)
+  - remover do POM do serviço versões já gerenciadas pelo pai (`java.version`, BOMs do Spring Cloud e do Spring AI) e as tags vazias do Initializr (`name`, `licenses`, `developers`, `scm`); o POM raiz é que bloqueia a herança desses metadados do Spring Boot
+- [x] Mover um Maven Wrapper para a raiz.
 - [ ] Criar `shared/financas-eventos` e `shared/financas-commons` vazios.
 
 **Pronto quando:** `./mvnw verify` roda com sucesso na raiz.

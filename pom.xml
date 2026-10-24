@@ -12,6 +12,21 @@
     <artifactId>finance-api</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
+    <description>Gerenciamento de finanças pessoais em microsserviços</description>
+
+    <!-- Sem estes elementos, os módulos herdariam do spring-boot-starter-parent a licença,
+         os desenvolvedores e o SCM do próprio Spring Boot -->
+    <url>https://github.com/DiiOliiver/finance-api</url>
+    <licenses>
+        <license/>
+    </licenses>
+    <developers>
+        <developer/>
+    </developers>
+    <scm>
+        <connection>scm:git:https://github.com/DiiOliiver/finance-api.git</connection>
+        <url>https://github.com/DiiOliiver/finance-api</url>
+    </scm>
 
     <properties>
         <java.version>25</java.version>

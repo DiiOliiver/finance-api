@@ -1,3 +1,5 @@
 # Scripts de shell precisam de LF: com CRLF o bash falha ao executar no Windows.
 *.sh text eol=lf
 mvnw text eol=lf
+# O mvnw.cmd roda no cmd do Windows, que espera CRLF.
+*.cmd text eol=crlf
