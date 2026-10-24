@@ -306,7 +306,7 @@ gitGraph
    git switch -c feature/e2-t1-account-domain
    ```
 2. Faça os commits na branch, com os testes passando.
-3. Envie a branch e abra um pull request **para a `develop`**.
+3. Envie a branch e abra um pull request **para a `develop`**. O corpo já vem do [template](.github/pull_request_template.md): preencha a tarefa, o que mudou, como testar e o checklist.
 4. Depois do merge, a branch pode ser apagada.
 
 | Branch | Uso |
