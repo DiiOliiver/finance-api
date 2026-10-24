@@ -5,10 +5,7 @@ source "$(dirname "$0")/lib.sh"
 
 command=$(json_field command)
 
-# git commit, inclusive com opções antes do subcomando (git -C x commit, git -c k=v commit)
-if ! printf '%s' "$command" | grep -Eq '(^|[[:space:];&|(])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+commit([[:space:]]|$)'; then
-    exit 0
-fi
+is_git_commit "$command" || exit 0
 
 cd "${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}" || exit 0
 

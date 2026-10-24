@@ -13,6 +13,7 @@ Esta pasta reúne a documentação técnica e conceitual do **Gerenciamento de F
 | Saber a ordem de construção do projeto | [etapas.md](etapas.md) |
 | Consultar o significado de um termo | [conceitos.md](conceitos.md#3-glossário) |
 | Configurar, subir e testar o projeto | [README da raiz](../README.md) |
+| Saber como enviar uma alteração (branches e pull requests) | [Fluxo de trabalho](../README.md#fluxo-de-trabalho) |
 
 ## Documentos
 

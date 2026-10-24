@@ -18,6 +18,7 @@ O usuário cadastra contas, lança receitas e despesas, anexa comprovantes, acom
 - [Levantando o ambiente](#levantando-o-ambiente)
 - [Executando os serviços](#executando-os-serviços)
 - [Executando os testes](#executando-os-testes)
+- [Fluxo de trabalho](#fluxo-de-trabalho)
 - [Observabilidade](#observabilidade)
 - [Portas e acessos](#portas-e-acessos)
 - [Problemas comuns](#problemas-comuns)
@@ -272,9 +273,49 @@ Configurados em [`.claude/settings.json`](.claude/settings.json), com scripts ba
 |---|---|---|
 | `block-mvn.sh` | Antes de comandos de shell | Bloqueia `mvn`; o projeto usa sempre `./mvnw` |
 | `protect-env.sh` | Antes de editar arquivos ou rodar comandos de shell | Bloqueia alterações em `.env` (o `.env.example` é liberado) |
+| `protect-branches.sh` | Antes de `git commit` | Bloqueia commit direto em `main`, `develop` e `homol` (ver [Fluxo de trabalho](#fluxo-de-trabalho)) |
 | `test-before-commit.sh` | Antes de `git commit` | Roda `./mvnw test` nos módulos alterados (todos, se mudou o `pom.xml` raiz ou `shared/`) e bloqueia o commit se algum teste falhar |
 
 Os hooks valem para as ações do Claude. Commits feitos direto no terminal não passam por eles.
+
+---
+
+## Fluxo de trabalho
+
+Durante as etapas de desenvolvimento, toda alteração segue **develop → branch → pull request → develop**:
+
+```mermaid
+gitGraph
+    commit id: "main"
+    branch develop
+    checkout develop
+    commit id: "develop"
+    branch feat/e2-t1-account-domain
+    checkout feat/e2-t1-account-domain
+    commit id: "domínio de conta"
+    commit id: "testes"
+    checkout develop
+    merge feat/e2-t1-account-domain id: "PR aprovado"
+```
+
+1. Atualize a `develop` e crie a branch a partir dela:
+   ```bash
+   git switch develop
+   git pull
+   git switch -c feat/e2-t1-account-domain
+   ```
+2. Faça os commits na branch, com os testes passando.
+3. Envie a branch e abra um pull request **para a `develop`**.
+4. Depois do merge, a branch pode ser apagada.
+
+| Branch | Uso |
+|---|---|
+| `develop` | Integração do desenvolvimento; recebe código só por pull request |
+| `homol` | Homologação; nunca recebe commit direto |
+| `main` | Produção; nunca recebe commit direto |
+| `<tipo>/<tarefa>-<descrição>` | Trabalho de uma tarefa, criada a partir da `develop` |
+
+**Nome da branch:** `<tipo>` é `feat`, `fix`, `refactor`, `test`, `docs` ou `chore`; `<tarefa>` é o código da tarefa no quadro (`e2-t1`); a descrição é curta, em inglês e kebab-case. Exemplo: `feat/e2-t1-account-domain`.
 
 ---
 

@@ -13,6 +13,11 @@ json_field() {
         | sed "s/^\"$1\"[[:space:]]*:[[:space:]]*\"//; s/\"\$//"
 }
 
+# Verdadeiro se o comando roda "git commit", inclusive com opções antes do subcomando (git -c k=v commit).
+is_git_commit() {
+    printf '%s' "$1" | grep -Eq '(^|[[:space:];&|(])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+commit([[:space:]]|$)'
+}
+
 # Bloqueia a chamada da ferramenta: exit 2 faz o Claude Code cancelar e repassar a mensagem ao Claude.
 block() {
     printf '%s\n' "$1" >&2
