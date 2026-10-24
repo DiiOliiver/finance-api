@@ -264,6 +264,18 @@ Relatório de cobertura (JaCoCo), gerado após `verify`:
 
 > Mais detalhes sobre a estratégia de testes em [`docs/etapas.md`](docs/etapas.md#etapa-8--testes).
 
+### Hooks do Claude Code
+
+Configurados em [`.claude/settings.json`](.claude/settings.json), com scripts bash em `.claude/hooks/` (sem Node, `jq` ou Python; no Windows usam o Git Bash):
+
+| Hook | Quando roda | O que faz |
+|---|---|---|
+| `block-mvn.sh` | Antes de comandos de shell | Bloqueia `mvn`; o projeto usa sempre `./mvnw` |
+| `protect-env.sh` | Antes de editar arquivos ou rodar comandos de shell | Bloqueia alterações em `.env` (o `.env.example` é liberado) |
+| `test-before-commit.sh` | Antes de `git commit` | Roda `./mvnw test` nos módulos alterados (todos, se mudou o `pom.xml` raiz ou `shared/`) e bloqueia o commit se algum teste falhar |
+
+Os hooks valem para as ações do Claude. Commits feitos direto no terminal não passam por eles.
+
 ---
 
 ## Observabilidade
