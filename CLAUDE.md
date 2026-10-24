@@ -78,8 +78,14 @@ finance-api/
 Fluxo durante o desenvolvimento: **develop → branch → pull request → develop** (detalhes no `README.md`, seção "Fluxo de trabalho").
 
 - Nunca faça commit em `main`, `develop` ou `homol`. O hook `protect-branches.sh` bloqueia.
-- Antes de alterar código, crie a branch a partir da `develop` atualizada: `<tipo>/<tarefa>-<descrição>` (ex.: `feat/e2-t1-account-domain`), com `<tipo>` entre `feat`, `fix`, `refactor`, `test`, `docs` e `chore`.
+- Antes de alterar código, crie a branch a partir da `develop` atualizada.
 - Pull requests sempre têm a `develop` como base.
+- Branches e commits seguem o Conventional Commits; o hook `conventional-commits.sh` bloqueia o que estiver fora do padrão.
+
+| | Formato | Tipos | Exemplo |
+|---|---|---|---|
+| Branch | `<tipo>/<tarefa>-<descrição>` | `feature`, `refactor`, `bugfix`, `hotfix`, `release`, `chore` | `feature/e2-t1-account-domain` |
+| Commit | `<tipo>: <descrição>` | `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore` | `feat: add account domain` |
 
 ## Regras de arquitetura (obrigatórias)
 

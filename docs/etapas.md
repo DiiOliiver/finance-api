@@ -2,7 +2,7 @@
 
 Roteiro sugerido para construir o projeto. Cada etapa entrega algo que funciona e pode ser testado antes de seguir para a próxima.
 
-Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request → develop**: uma branch criada a partir da `develop`, com o código da tarefa no nome (`feat/e2-t1-account-domain`), que volta por pull request. Commits direto em `main`, `develop` e `homol` não são permitidos. Detalhes em [Fluxo de trabalho](../README.md#fluxo-de-trabalho).
+Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request → develop**: uma branch criada a partir da `develop`, com o código da tarefa no nome (`feature/e2-t1-account-domain`), que volta por pull request. Commits direto em `main`, `develop` e `homol` não são permitidos, e branches e commits seguem o Conventional Commits. Detalhes em [Fluxo de trabalho](../README.md#fluxo-de-trabalho) e [Padrão de nomes](../README.md#padrão-de-nomes).
 
 ## Sumário
 

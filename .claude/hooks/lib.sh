@@ -13,6 +13,11 @@ json_field() {
         | sed "s/^\"$1\"[[:space:]]*:[[:space:]]*\"//; s/\"\$//"
 }
 
+# Como json_field, mas desfaz os escapes do JSON (\n vira quebra de linha, \" vira aspas).
+json_text() {
+    json_field "$1" | sed 's/\\n/\n/g; s/\\t/\t/g; s/\\"/"/g; s/\\\\/\\/g'
+}
+
 # Verdadeiro se o comando roda "git commit", inclusive com opções antes do subcomando (git -c k=v commit).
 is_git_commit() {
     printf '%s' "$1" | grep -Eq '(^|[[:space:];&|(])git([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+commit([[:space:]]|$)'

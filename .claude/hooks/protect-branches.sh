@@ -17,7 +17,7 @@ cd "${CLAUDE_PROJECT_DIR:-.}" || exit 0
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 
 if [[ "$branch" =~ $protected ]]; then
-    block "Committing directly to '$branch' is not allowed. Create a branch from develop (git switch -c <type>/<task> develop), commit there and open a pull request to develop."
+    block "Committing directly to '$branch' is not allowed. Create a branch from develop (git switch -c <type>/<task>-<description> develop, e.g. feature/e2-t1-account-domain), commit there and open a pull request to develop."
 fi
 
 exit 0

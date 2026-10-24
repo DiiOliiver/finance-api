@@ -20,11 +20,9 @@ fi
 
 # Bash e PowerShell: só conta quando o .env é o destino da escrita, não quando é apenas citado
 # (uma mensagem de commit que fala de ".env" não pode ser barrada).
-command=$(json_field command)
+# json_text desfaz os escapes do JSON, para que cada linha do comando seja analisada separadamente.
+command=$(json_text command)
 [[ -z "$command" ]] && exit 0
-
-# Desfaz os escapes do JSON para que cada linha do comando seja analisada separadamente.
-command=$(printf '%s' "$command" | sed 's/\\n/\n/g; s/\\"/"/g; s/\\\\/\\/g')
 
 # Nome de arquivo terminado em .env ou .env.<sufixo>; o caractere seguinte não pode continuar o nome
 # (".envrc" não é .env) e é removido depois.
