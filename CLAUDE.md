@@ -80,7 +80,8 @@ Fluxo durante o desenvolvimento: **develop → branch → pull request → devel
 - Nunca faça commit em `main`, `develop` ou `homol`. O hook `protect-branches.sh` bloqueia.
 - Antes de alterar código, crie a branch a partir da `develop` atualizada.
 - Pull requests sempre têm a `develop` como base, e o corpo segue o `.github/pull_request_template.md` (tarefa, o que mudou, como testar e checklist). Marque no checklist só o que foi de fato verificado.
-- Branches e commits seguem o Conventional Commits; o hook `conventional-commits.sh` bloqueia o que estiver fora do padrão.
+- Branches e commits seguem o Conventional Commits; o hook `conventional-commits.sh` bloqueia o que estiver fora do padrão. O título do PR segue o mesmo formato de commit.
+- Todo PR para a `develop` roda o CI (`.github/workflows/`): `./mvnw verify` e a checagem do título. Só considere o PR pronto com os checks verdes; se falharem, leia o log do job antes de mexer.
 
 | | Formato | Tipos | Exemplo |
 |---|---|---|---|

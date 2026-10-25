@@ -39,8 +39,9 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
   - remover do POM do serviço versões já gerenciadas pelo pai (`java.version`, BOMs do Spring Cloud e do Spring AI) e as tags vazias do Initializr (`name`, `licenses`, `developers`, `scm`); o POM raiz é que bloqueia a herança desses metadados do Spring Boot
 - [x] Mover um Maven Wrapper para a raiz.
 - [x] Criar `shared/financas-eventos` e `shared/financas-commons` vazios (jar simples, sem `spring-boot-maven-plugin`, com `<relativePath>../../pom.xml</relativePath>` e só o `package-info.java` do pacote base).
+- [x] CI mínimo no GitHub Actions: `./mvnw verify` e checagem do título em todo PR para a `develop` (ver [Integração contínua](../README.md#integração-contínua)).
 
-**Pronto quando:** `./mvnw verify` roda com sucesso na raiz.
+**Pronto quando:** `./mvnw verify` roda com sucesso na raiz e no CI.
 
 ---
 
@@ -257,7 +258,7 @@ class LayerRulesTest {
 ## Etapa 11 — Rumo à produção
 
 - [ ] Imagens Docker por serviço (multi-stage ou `spring-boot:build-image`).
-- [ ] Pipeline de CI: build → `test` → `verify` → análise estática → imagem.
+- [ ] Ampliar o CI da Etapa 0 (que já roda `verify` em todo PR): análise estática e build/publicação das imagens no registry em merge para `homol` e `main`.
 - [ ] Perfil `prod`: amostragem de traces reduzida, logs em nível INFO, limites de recurso.
 - [ ] Health checks de `liveness` e `readiness`.
 - [ ] Backup do MongoDB e política de ciclo de vida no bucket do RustFS.
