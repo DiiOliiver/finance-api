@@ -288,10 +288,9 @@ deploy/
 ├── docker-compose.yml           infraestrutura: mongo, rabbitmq, rustfs, otel, jaeger, prometheus, grafana
 ├── docker-compose.services.yml  os microsserviços (opcional)
 ├── mongo/
-│   └── init-replica-set.js      inicializa o replica set (necessário para transações)
+│   └── init-replica-set.js      healthcheck que inicia o replica set (necessário para transações)
 ├── rabbitmq/
-│   ├── rabbitmq.conf
-│   └── definitions.json         exchanges, filas e DLQs pré-criadas
+│   └── definitions.json         exchanges, filas e DLQs; importado pelo serviço rabbitmq-definitions
 ├── rustfs/
 │   └── create-buckets.sh        cria o bucket "receipts"
 ├── otel-collector.yml           recebe OTLP e envia para o Jaeger
