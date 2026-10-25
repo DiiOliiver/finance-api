@@ -22,5 +22,5 @@ paths:
 - Dados em volumes nomeados (`mongo-data`, `rabbitmq-data`, `rustfs-data`).
 - Portas publicadas só em `127.0.0.1` (ex.: `127.0.0.1:27017:27017`).
 - Credenciais vêm do `.env` (`${MONGO_ROOT_PASSWORD}`). Nenhum segredo escrito no YAML.
-- Uma rede única `financas-net` para infra e serviços.
+- Uma rede única `finance-net` para infra e serviços.
 - Toda variável nova é documentada em `deploy/.env.example` e no `README.md`.

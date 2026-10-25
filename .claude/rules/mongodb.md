@@ -19,14 +19,14 @@ Complementa o `CLAUDE.md` (UUID standard, `Decimal128`, Document ≠ entidade e 
 - Use projeções quando a consulta não precisa do documento inteiro.
 
 ## Consultas
-- Toda consulta de dados do usuário filtra por `usuarioId`.
+- Toda consulta de dados do usuário filtra por `userId`.
 - Nada de `findAll()` sem filtro e sem paginação.
 - Toda consulta nova precisa de índice que a atenda. Confira com `explain()` se houver dúvida.
 
 ## Índices (via Mongock)
-- Índice composto seguindo a consulta principal: igualdade primeiro, depois ordenação (ex.: `{usuarioId: 1, data: -1}`).
-- `eventos_processados.eventId` com índice **único**.
-- Índice TTL para dados temporários: `outbox` já enviada e `eventos_processados` (ex.: 30 dias).
+- Índice composto seguindo a consulta principal: igualdade primeiro, depois ordenação (ex.: `{userId: 1, date: -1}`).
+- `processed_events.eventId` com índice **único**.
+- Índice TTL para dados temporários: `outbox` já enviada e `processed_events` (ex.: 30 dias).
 - Changesets nunca são editados depois de aplicados: crie um novo.
 
 ## Transações

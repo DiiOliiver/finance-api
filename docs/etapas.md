@@ -49,7 +49,7 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
 - [ ] `deploy/docker-compose.yml` com:
   - MongoDB como **replica set** de um nó (necessário para transações)
   - RabbitMQ com painel de gerenciamento e `definitions.json`
-  - RustFS + script que cria o bucket `comprovantes`
+  - RustFS + script que cria o bucket `receipts`
   - OpenTelemetry Collector, Jaeger, Prometheus, Grafana
 - [ ] `healthcheck` em todos os containers.
 - [ ] `.env.example` documentado.
@@ -62,11 +62,11 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
 
 Serve de **molde** para todos os outros.
 
-- [ ] **domain:** `Conta`, `ContaId` (UUID), `Valor`, `Moeda`, exceções de negócio.
-- [ ] **application:** `CriarContaUseCase`, `BuscarContaUseCase`, `ContaRepositoryPort`.
+- [ ] **domain:** `Account`, `AccountId` (UUID), `Amount`, `Currency`, exceções de negócio.
+- [ ] **application:** `CreateAccountUseCase`, `GetAccountUseCase`, `AccountRepositoryPort`.
 - [ ] **infra:**
-  - `ContaController` com respostas de erro em Problem Details
-  - `ContaDocument`, `ContaRepositoryAdapter`, mapper
+  - `AccountController` com respostas de erro em Problem Details
+  - `AccountDocument`, `AccountRepositoryAdapter`, mapper
   - `representation.uuid: standard` no YAML
   - Índices via Mongock
 - [ ] Actuator com `health` e `prometheus`.
@@ -79,10 +79,10 @@ Serve de **molde** para todos os outros.
 ## Etapa 3 — Comunicação síncrona + circuit breaker
 
 - [ ] Criar o `transacao-service` copiando o molde.
-- [ ] `ContaClientPort` (application) e `ContaHttpClient` + `ContaClientAdapter` (infra).
+- [ ] `AccountClientPort` (application) e `AccountHttpClient` + `AccountClientAdapter` (infra).
 - [ ] Adicionar `spring-cloud-starter-circuitbreaker-resilience4j`.
 - [ ] Configurar `circuitbreaker`, `retry` e `timelimiter` no YAML.
-- [ ] Fallback lançando `ServicoIndisponivelException` → HTTP 503.
+- [ ] Fallback lançando `ServiceUnavailableException` → HTTP 503.
 - [ ] `ignore-exceptions` para erros de negócio (404 não abre o circuito).
 - [ ] Expor `/actuator/circuitbreakers`.
 
@@ -93,9 +93,9 @@ Serve de **molde** para todos os outros.
 ## Etapa 4 — Mensageria
 
 - [ ] Contratos de evento em `shared/financas-eventos` com envelope (`eventId`, `type`, `version`, `occurredAt`, `payload`).
-- [ ] Topologia: exchange `financas.eventos` (topic), DLX `financas.dlx`, filas e DLQs.
+- [ ] Topologia: exchange `finance.events` (topic), DLX `finance.dlx`, filas e DLQs.
 - [ ] **Outbox** no `transacao-service`: coleção `outbox` + `OutboxRelay` agendado + publisher confirms.
-- [ ] Consumidor no `conta-service` atualizando o saldo, com **idempotência** (`eventos_processados` com índice único em `eventId`).
+- [ ] Consumidor no `conta-service` atualizando o saldo, com **idempotência** (`processed_events` com índice único em `eventId`).
 - [ ] Retry do consumidor com backoff; após N tentativas, vai para a DLQ.
 
 **Pronto quando:** registrar uma transação atualiza o saldo; derrubar o RabbitMQ não perde eventos; enviar a mesma mensagem duas vezes não duplica o saldo.
@@ -104,8 +104,8 @@ Serve de **molde** para todos os outros.
 
 ## Etapa 5 — Serviços consumidores
 
-- [ ] `orcamento-service`: domínio `Orcamento` com regras de 80%/100% e consumo de eventos de transação.
-- [ ] `notificacao-service`: consome `orcamento.alerta` / `orcamento.excedido` e envia e-mail (MailHog/Mailpit em ambiente local).
+- [ ] `orcamento-service`: domínio `Budget` com regras de 80%/100% e consumo de eventos de transação.
+- [ ] `notificacao-service`: consome `budget.alert` / `budget.exceeded` e envia e-mail (MailHog/Mailpit em ambiente local).
 
 **Pronto quando:** estourar um orçamento gera um e-mail visível no Mailpit.
 
@@ -122,11 +122,11 @@ Serve de **molde** para todos os outros.
 ### Claude (`assistente-ia-service`)
 - [ ] Spring AI com Anthropic; chave via `ANTHROPIC_API_KEY`.
 - [ ] Prompt de categorização com lista fechada de categorias e saída estruturada.
-- [ ] Circuit breaker `claude-api` + time limiter + fallback `NAO_CLASSIFICADA`.
+- [ ] Circuit breaker `claude-api` + time limiter + fallback `UNCLASSIFIED`.
 - [ ] Recategorização agendada das pendentes.
 - [ ] Projeção local de gastos por mês/categoria para os insights.
 
-**Pronto quando:** transações recebem categoria automaticamente e, com a chave inválida, entram como `NAO_CLASSIFICADA` sem erro para o usuário.
+**Pronto quando:** transações recebem categoria automaticamente e, com a chave inválida, entram como `UNCLASSIFIED` sem erro para o usuário.
 
 ---
 
@@ -142,7 +142,7 @@ Depende das etapas 4 (mensageria) e 6 (RustFS e IA).
 - [ ] Acompanhamento da importação (status e contadores de importadas, duplicadas e rejeitadas).
 - [ ] `assistente-ia-service`: categorização em lote dos lançamentos importados, só com descrição e valor no prompt.
 
-**Pronto quando:** enviar um OFX gera as transações categorizadas; reenviar o mesmo arquivo não duplica nada; com a IA fora, as transações entram como `NAO_CLASSIFICADA`.
+**Pronto quando:** enviar um OFX gera as transações categorizadas; reenviar o mesmo arquivo não duplica nada; com a IA fora, as transações entram como `UNCLASSIFIED`.
 
 ---
 
@@ -158,13 +158,13 @@ Depende das etapas 4 (mensageria) e 6 (RustFS e IA).
 
 | Camada | Ferramenta | O que testar | Exemplo |
 |---|---|---|---|
-| domain | JUnit 5 | Regras de negócio, invariantes | `Valor` não aceita negativo; `Transacao` não pode ser estornada duas vezes |
+| domain | JUnit 5 | Regras de negócio, invariantes | `Amount` não aceita negativo; `Transaction` não pode ser estornada duas vezes |
 | application | JUnit 5 + Mockito | Orquestração do caso de uso, chamadas às portas | Se a conta não existe, não salva nem publica evento |
 | infra / persistência | Testcontainers (MongoDB) | Mapeamento, UUID, índices, consultas | UUID salvo como binário subtipo 4 |
 | infra / mensageria | Testcontainers (RabbitMQ) | Publicação, consumo, DLQ, idempotência | Mesma mensagem 2x → um único efeito |
 | infra / storage | Testcontainers (`GenericContainer` RustFS) | Upload/download por URL pré-assinada | Objeto existe após PUT |
 | infra / clientes + CB | WireMock | Circuito abre, fallback, retry | 10 respostas 500 → estado `OPEN` |
-| infra / IA | Mock do `ChatModel` | Prompt montado, parse da resposta, fallback | Categoria inválida → `NAO_CLASSIFICADA` |
+| infra / IA | Mock do `ChatModel` | Prompt montado, parse da resposta, fallback | Categoria inválida → `UNCLASSIFIED` |
 | arquitetura | ArchUnit | Dependências entre camadas | `domain` não depende de `org.springframework..` |
 
 ### Testcontainers com `@ServiceConnection`
@@ -189,11 +189,11 @@ public class ContainersConfig {
 
 ```java
 @Test
-void deveAbrirCircuitoAposFalhasEUsarFallback() {
-    wiremock.stubFor(get(urlPathMatching("/contas/.*")).willReturn(serverError()));
+void shouldOpenCircuitAfterFailuresAndUseFallback() {
+    wiremock.stubFor(get(urlPathMatching("/accounts/.*")).willReturn(serverError()));
 
     for (int i = 0; i < 10; i++) {
-        assertThrows(ServicoIndisponivelException.class, () -> adapter.buscar(UUID.randomUUID()));
+        assertThrows(ServiceUnavailableException.class, () -> adapter.findById(UUID.randomUUID()));
     }
 
     assertThat(registry.circuitBreaker("conta-service").getState())
@@ -205,10 +205,10 @@ void deveAbrirCircuitoAposFalhasEUsarFallback() {
 
 ```java
 @AnalyzeClasses(packages = "br.com.finance.transacao")
-class RegrasDeCamadasTest {
+class LayerRulesTest {
 
     @ArchTest
-    static final ArchRule camadas = layeredArchitecture().consideringAllDependencies()
+    static final ArchRule layers = layeredArchitecture().consideringAllDependencies()
             .layer("Domain").definedBy("..domain..")
             .layer("Application").definedBy("..application..")
             .layer("Infra").definedBy("..infra..")
@@ -217,7 +217,7 @@ class RegrasDeCamadasTest {
             .whereLayer("Domain").mayOnlyBeAccessedByLayers("Application", "Infra");
 
     @ArchTest
-    static final ArchRule dominioSemSpring = noClasses().that().resideInAPackage("..domain..")
+    static final ArchRule domainWithoutSpring = noClasses().that().resideInAPackage("..domain..")
             .should().dependOnClassesThat().resideInAPackage("org.springframework..");
 }
 ```
@@ -249,7 +249,7 @@ class RegrasDeCamadasTest {
 
 - [ ] `api-gateway` com Spring Cloud Gateway: rotas, CORS e rate limit.
 - [ ] Autenticação OAuth2/OIDC (ex.: Keycloak em container) com validação de JWT no gateway.
-- [ ] Repasse do `usuarioId` para os serviços; cada consulta filtra pelos dados do próprio usuário.
+- [ ] Repasse do `userId` para os serviços; cada consulta filtra pelos dados do próprio usuário.
 - [ ] Segredos apenas por variável de ambiente.
 
 ---

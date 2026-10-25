@@ -30,7 +30,7 @@ Complementa o `CLAUDE.md`. Anotações do Spring existem **somente** na camada `
 ## Clientes HTTP
 - Use HTTP Interfaces (`@HttpExchange` / `@GetExchange`) sobre `RestClient`.
 - Configure sempre timeout de conexão e de leitura explícitos. Nunca deixe o padrão infinito.
-- A URL base de cada serviço vem de configuração (`financas.clientes.<servico>.url`).
+- A URL base de cada serviço vem de configuração (`finance.clients.<servico>.url`).
 
 ## Tarefas agendadas
 - `@Scheduled` deve ser seguro com várias instâncias do serviço rodando: reserve o trabalho de forma atômica (ex.: `findAndModify` marcando o documento como `EM_PROCESSAMENTO`) antes de processar.

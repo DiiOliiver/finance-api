@@ -17,21 +17,24 @@ public Transaction reverse(Clock clock) {
 }
 ```
 
-## Nomes legados
-O `CLAUDE.md`, `docs/` e as outras rules ainda citam nomes em português (`Transacao.nova(...)`, `NegocioException`, `eventos_processados`). Trate-os como o conceito, e implemente com o equivalente em inglês:
+## Glossário do domínio
+O texto da documentação é em português, e os nomes no código são em inglês. O `CLAUDE.md`, os `docs/` e as rules já usam os nomes em inglês. Para traduzir um termo do texto para o código, use sempre o mesmo nome:
 
-| Português | Inglês |
+| Português (texto) | Inglês (código) |
 |---|---|
-| Transacao / TransacaoRegistrada | Transaction / TransactionRegistered |
-| Conta | Account |
-| Orcamento | Budget |
-| Categoria / NAO_CLASSIFICADA | Category / UNCLASSIFIED |
-| Valor | Amount |
-| Estorno / estornar | Reversal / reverse |
-| NegocioException | BusinessException |
-| ServicoIndisponivelException | ServiceUnavailableException |
-| eventos_processados | processed_events |
-| `financas.transacoes.registradas` | `finance.transactions.registered` |
+| Transação / transação registrada | `Transaction` / `TransactionRegistered` |
+| Conta / saldo | `Account` / `balance` |
+| Orçamento / meta | `Budget` / `Goal` |
+| Categoria / não classificada | `Category` / `UNCLASSIFIED` |
+| Valor / moeda | `Amount` / `Currency` |
+| Comprovante | `Receipt` |
+| Estorno / estornar | `Reversal` / `reverse` |
+| Receita / despesa | `INCOME` / `EXPENSE` |
+| Exceção de negócio | `BusinessException` |
+| Serviço indisponível | `ServiceUnavailableException` |
+| Eventos processados (idempotência) | `processed_events` |
+| Usuário | `userId` |
 
-- Os nomes dos módulos (`conta-service`, ...) e os pacotes base dos serviços (`br.com.finance.conta`, ...) ficam como estão até uma migração dedicada. Os subpacotes `domain`, `application` e `infra` já estão em inglês.
+- Os nomes dos módulos (`conta-service`, `financas-eventos`...) e os pacotes base dos serviços (`br.com.finance.conta`...) ficam como estão até uma migração dedicada; o mesmo vale para as classes `*ServiceApplication` geradas pelo Initializr. Os subpacotes `domain`, `application` e `infra` já estão em inglês.
+- No nome de uma fila, o prefixo é o serviço consumidor e mantém o nome do módulo: `orcamento.transaction-registered`.
 - Termo fora da tabela: use o termo usual do domínio financeiro em inglês e mantenha o mesmo nome em todos os serviços.
