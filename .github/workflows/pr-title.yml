@@ -11,7 +11,8 @@ permissions: {}
 
 jobs:
   title:
-    name: Título no padrão <tipo>: <descrição>
+    # Entre aspas: um ": " solto no valor deixaria o YAML inválido
+    name: 'Título no padrão <tipo>: <descrição>'
     runs-on: ubuntu-latest
     timeout-minutes: 2
 
