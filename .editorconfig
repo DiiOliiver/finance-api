@@ -1,0 +1,23 @@
+# Padrão de formatação para editores e IDEs (https://editorconfig.org)
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+# Em Markdown, dois espaços no fim da linha são quebra de linha
+[*.md]
+trim_trailing_whitespace = false
+
+# Quebras de linha iguais às do .gitattributes
+[{*.sh,mvnw}]
+end_of_line = lf
+
+[*.cmd]
+end_of_line = crlf
