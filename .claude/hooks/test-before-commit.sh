@@ -39,8 +39,14 @@ failure_summary() {
         | head -n 30
 }
 
-# Com o Maven Wrapper na raiz (E0·T2), roda pelo reactor; até lá, usa o wrapper de cada serviço.
-if [[ -x ./mvnw || -f ./mvnw ]]; then
+# O reactor da raiz só funciona com todos os <module> do pom.xml presentes; se faltar algum
+# (ex.: shared/ antes da E0·T3), cada serviço é testado sozinho com o wrapper da raiz.
+reactor_ready=true
+while read -r declared; do
+    [[ -f "$declared/pom.xml" ]] || reactor_ready=false
+done < <(grep -oE '<module>[^<]+</module>' pom.xml | sed -E 's#</?module>##g')
+
+if $reactor_ready; then
     selected=$(IFS=,; printf '%s' "${modules[*]}")
     if ! bash ./mvnw -B -q -pl "$selected" -am test >"$log" 2>&1; then
         block "Commit blocked: unit tests failed in ${selected}.
@@ -49,7 +55,7 @@ $(failure_summary "$log")"
 else
     failed=()
     for module in "${modules[@]}"; do
-        if ! (cd "$module" && bash ./mvnw -B -q test) >>"$log" 2>&1; then
+        if ! bash ./mvnw -B -q -f "$module/pom.xml" test >>"$log" 2>&1; then
             failed+=("$module")
         fi
     done
