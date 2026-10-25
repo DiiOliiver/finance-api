@@ -25,7 +25,7 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
 
 ## Etapa 0 — Fundação
 
-- [ ] Criar o repositório `finance-api` com `README.md`, `CLAUDE.md`, `.gitignore`, `.editorconfig` e as pastas `docs/` e `deploy/`.
+- [x] Criar o repositório `finance-api` com `README.md`, `CLAUDE.md`, `.gitignore`, `.editorconfig` e as pastas `docs/` e `deploy/`.
 - [x] Criar o `pom.xml` pai e agregador (`packaging` = `pom`):
   - `parent`: `spring-boot-starter-parent` 4.1.1
   - `java.version` = 25
@@ -38,7 +38,7 @@ Cada tarefa de uma etapa segue o fluxo **develop → branch → pull request →
   - apagar `.git`, `.gitignore`, `.gitattributes`, `HELP.md`, `mvnw`, `mvnw.cmd`, `.mvn/` (os de Git e do wrapper ficam só na raiz)
   - remover do POM do serviço versões já gerenciadas pelo pai (`java.version`, BOMs do Spring Cloud e do Spring AI) e as tags vazias do Initializr (`name`, `licenses`, `developers`, `scm`); o POM raiz é que bloqueia a herança desses metadados do Spring Boot
 - [x] Mover um Maven Wrapper para a raiz.
-- [ ] Criar `shared/financas-eventos` e `shared/financas-commons` vazios.
+- [x] Criar `shared/financas-eventos` e `shared/financas-commons` vazios (jar simples, sem `spring-boot-maven-plugin`, com `<relativePath>../../pom.xml</relativePath>` e só o `package-info.java` do pacote base).
 
 **Pronto quando:** `./mvnw verify` roda com sucesso na raiz.
 
