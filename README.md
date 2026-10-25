@@ -68,6 +68,7 @@ finance-api/
 ├── mvnw / mvnw.cmd / .mvn/  ← Maven Wrapper
 ├── README.md
 ├── CLAUDE.md                ← regras para o Claude trabalhar no projeto
+├── .github/                 ← workflows de CI e template de pull request
 ├── docs/                    ← documentação
 ├── deploy/                  ← Docker Compose, .env.example e configs da infraestrutura
 ├── shared/                  ← contratos de eventos e utilitários comuns
@@ -307,7 +308,8 @@ gitGraph
    ```
 2. Faça os commits na branch, com os testes passando.
 3. Envie a branch e abra um pull request **para a `develop`**. O corpo já vem do [template](.github/pull_request_template.md): preencha a tarefa, o que mudou, como testar e o checklist.
-4. Depois do merge, a branch pode ser apagada.
+4. Espere os checks da [integração contínua](#integração-contínua) ficarem verdes antes do merge.
+5. Depois do merge, a branch pode ser apagada.
 
 | Branch | Uso |
 |---|---|
@@ -328,6 +330,19 @@ Branches e commits seguem o [Conventional Commits](https://www.conventionalcommi
 - `<tarefa>` é o código da tarefa no quadro (`e2-t1`); a descrição da branch é curta, em inglês, minúscula e em kebab-case.
 - No commit, o espaço depois dos dois-pontos é obrigatório, como no Conventional Commits. Escopo e `!` de breaking change são aceitos: `fix(conta): handle missing account`, `refactor!: rename ports`.
 - Só a primeira linha do commit é validada; o corpo é livre.
+
+### Integração contínua
+
+Todo pull request para a `develop` roda dois workflows do GitHub Actions, em `.github/workflows/`:
+
+| Workflow | Check | O que faz |
+|---|---|---|
+| [`ci.yml`](.github/workflows/ci.yml) | `Build e testes (./mvnw verify)` | Java 25 (Temurin) com cache do Maven e `./mvnw -B verify` pela raiz: unitários, integração (`*IT`) com Testcontainers e a meta de 80% do JaCoCo. Se falhar, os relatórios ficam como artefato `test-reports` por 7 dias. |
+| [`pr-title.yml`](.github/workflows/pr-title.yml) | `Título no padrão <tipo>: <descrição>` | Valida o título do PR com a mesma regra das mensagens de commit. Roda de novo quando o título é editado. |
+
+Os testes não chamam a API do Claude (o `ChatModel` é sempre mockado), então o CI não precisa de nenhum segredo.
+
+**Proteção da `develop` (configurada no GitHub pelo dono do repositório):** em *Settings → Branches → Add branch ruleset* (ou *branch protection rule*) para a `develop`, marque *Require a pull request before merging* e *Require status checks to pass*, e adicione os dois checks acima. Assim nenhum merge acontece com o build quebrado ou com o título fora do padrão, nem fora do Claude.
 
 ---
 

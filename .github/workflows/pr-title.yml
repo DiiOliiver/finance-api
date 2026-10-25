@@ -1,0 +1,30 @@
+# Título do pull request no padrão Conventional Commits: <tipo>: <descrição>
+# Mesma regra do hook .claude/hooks/conventional-commits.sh para mensagens de commit.
+name: PR title
+
+on:
+  pull_request:
+    branches: [develop]
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  title:
+    name: Título no padrão <tipo>: <descrição>
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      # O título vai por variável de ambiente, nunca interpolado no script, para não permitir injeção de comandos
+      - name: Validar título
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|chore)(\([a-z0-9._-]+\))?!?: [^[:space:]]'
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "Title OK: $TITLE"
+          else
+            echo "::error title=Invalid PR title::'$TITLE' must follow <type>: <description>, with type in feat, fix, docs, style, refactor, perf, test, chore. Example: feat: add account domain"
+            exit 1
+          fi
