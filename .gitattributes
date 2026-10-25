@@ -1,5 +1,7 @@
 # Scripts de shell precisam de LF: com CRLF o bash falha ao executar no Windows.
 *.sh text eol=lf
 mvnw text eol=lf
+# O .env copiado deste modelo é lido pelo Docker Compose; com CRLF os valores ganhariam um \r no fim.
+deploy/.env.example text eol=lf
 # O mvnw.cmd roda no cmd do Windows, que espera CRLF.
 *.cmd text eol=crlf
