@@ -23,12 +23,12 @@ sequenceDiagram
     actor U as Usuário
     participant GW as api-gateway
     participant CS as conta-service
-    participant DB as Mongo (contas)
+    participant DB as Mongo (accounts)
 
-    U->>GW: POST /api/contas
+    U->>GW: POST /api/accounts
     GW->>GW: valida token e rate limit
-    GW->>CS: POST /contas
-    CS->>CS: Conta.nova(...) gera UUID e valida regras
+    GW->>CS: POST /accounts
+    CS->>CS: Account.create(...) gera UUID e valida regras
     CS->>DB: salva conta
     CS-->>GW: 201 Created + id
     GW-->>U: 201 Created
@@ -48,26 +48,26 @@ sequenceDiagram
     participant GW as api-gateway
     participant TS as transacao-service
     participant CS as conta-service
-    participant DB as Mongo (transacoes)
+    participant DB as Mongo (transactions)
     participant OR as OutboxRelay
     participant MQ as RabbitMQ
 
-    U->>GW: POST /api/transacoes
-    GW->>TS: POST /transacoes
-    TS->>CS: GET /contas/{id}  [circuit breaker]
+    U->>GW: POST /api/transactions
+    GW->>TS: POST /transactions
+    TS->>CS: GET /accounts/{id} [circuit breaker]
     CS-->>TS: conta ativa
-    TS->>TS: Transacao.nova(...) aplica regras
+    TS->>TS: Transaction.create(...) aplica regras
     TS->>DB: salva transação + evento na outbox (mesma transação)
     TS-->>GW: 201 Created
     GW-->>U: 201 Created
 
     Note over OR,MQ: em segundo plano
     OR->>DB: lê outbox pendente
-    OR->>MQ: publica transacao.registrada
+    OR->>MQ: publica transaction.registered
     OR->>DB: marca como enviado
 ```
 
-**Quem reage ao evento `transacao.registrada`:**
+**Quem reage ao evento `transaction.registered`:**
 
 | Consumidor | O que faz |
 |---|---|
@@ -94,26 +94,26 @@ sequenceDiagram
     participant CL as API Claude
     participant TS as transacao-service
 
-    MQ->>IA: transacao.registrada
+    MQ->>IA: transaction.registered
     IA->>IA: já processei este eventId? (idempotência)
     IA->>CL: "categorize: 'Mercado Bom Preço' 59,90" [CB + timeout]
-    CL-->>IA: {"categoria": "ALIMENTACAO", "confianca": 0.94}
+    CL-->>IA: {"category": "FOOD", "confidence": 0.94}
     IA->>IA: valida categoria contra a lista permitida
-    IA->>MQ: transacao.categorizada
-    MQ->>TS: transacao.categorizada
-    TS->>TS: AplicarCategoriaUseCase
+    IA->>MQ: transaction.categorized
+    MQ->>TS: transaction.categorized
+    TS->>TS: ApplyCategoryUseCase
 ```
 
 **Se o Claude estiver fora ou lento:**
 
 ```mermaid
 flowchart LR
-    A[transacao.registrada] --> B{Circuito claude-api}
+    A[transaction.registered] --> B{Circuito claude-api}
     B -- fechado --> C[Chama Claude]
     C -- ok --> D[Publica categoria]
     C -- erro/timeout --> E[Fallback]
     B -- aberto --> E
-    E --> F[Publica NAO_CLASSIFICADA]
+    E --> F[Publica UNCLASSIFIED]
     F --> G[Agenda recategorização]
     G -- circuito fechou --> C
 ```
@@ -128,23 +128,23 @@ A transação **nunca fica bloqueada** por causa da IA.
 sequenceDiagram
     participant MQ as RabbitMQ
     participant OS as orcamento-service
-    participant DB as Mongo (orcamentos)
+    participant DB as Mongo (budgets)
     participant NS as notificacao-service
 
-    MQ->>OS: transacao.categorizada (ALIMENTACAO, 59,90)
-    OS->>DB: busca orçamento de ALIMENTACAO no mês
-    OS->>OS: Orcamento.registrarGasto(59,90)
+    MQ->>OS: transaction.categorized (FOOD, 59,90)
+    OS->>DB: busca orçamento de FOOD no mês
+    OS->>OS: Budget.registerExpense(59,90)
     alt ultrapassou 80%
-        OS->>MQ: orcamento.alerta (80%)
+        OS->>MQ: budget.alert (80%)
     else ultrapassou 100%
-        OS->>MQ: orcamento.excedido
+        OS->>MQ: budget.exceeded
     end
     OS->>DB: salva
-    MQ->>NS: orcamento.excedido
+    MQ->>NS: budget.exceeded
     NS->>NS: envia e-mail / push
 ```
 
-**Regras do domínio `Orcamento`:**
+**Regras do domínio `Budget`:**
 - Alerta em 80% e 100% do limite, **uma vez por mês por limite**, sem repetir avisos.
 - Estorno devolve o valor ao orçamento.
 
@@ -162,23 +162,23 @@ sequenceDiagram
     participant RF as RustFS
     participant MQ as RabbitMQ
 
-    U->>GW: POST /api/comprovantes (nome, tipo, tamanho, transacaoId)
-    GW->>DS: POST /comprovantes
+    U->>GW: POST /api/receipts (name, type, size, transactionId)
+    GW->>DS: POST /receipts
     DS->>DS: valida tipo (pdf/jpg/png) e tamanho (≤ 10 MB)
-    DS->>DS: salva metadados com status AGUARDANDO_UPLOAD
+    DS->>DS: salva metadados com status AWAITING_UPLOAD
     DS->>RF: gera URL pré-assinada de PUT (expira em 5 min) [CB]
     DS-->>U: 201 + uploadUrl
     U->>RF: PUT arquivo na uploadUrl
-    U->>GW: POST /api/comprovantes/{id}/confirmar
+    U->>GW: POST /api/receipts/{id}/confirm
     GW->>DS: confirmar
     DS->>RF: HEAD objeto (existe? tamanho bate?) [CB]
-    DS->>DS: status = DISPONIVEL
-    DS->>MQ: comprovante.anexado
+    DS->>DS: status = AVAILABLE
+    DS->>MQ: receipt.attached
 ```
 
-**Download:** `GET /api/comprovantes/{id}` devolve uma URL pré-assinada de GET válida por 5 minutos.
+**Download:** `GET /api/receipts/{id}` devolve uma URL pré-assinada de GET válida por 5 minutos.
 
-**Limpeza:** uma tarefa agendada apaga metadados que ficaram em `AGUARDANDO_UPLOAD` por mais de 24h.
+**Limpeza:** uma tarefa agendada apaga metadados que ficaram em `AWAITING_UPLOAD` por mais de 24h.
 
 ---
 
@@ -192,9 +192,9 @@ sequenceDiagram
     participant CS as conta-service
     participant OS as orcamento-service
 
-    U->>TS: POST /transacoes/{id}/estorno
-    TS->>TS: transacao.estornar() → erro se já estornada
-    TS->>MQ: transacao.estornada (via outbox)
+    U->>TS: POST /transactions/{id}/reversal
+    TS->>TS: transaction.reverse() → erro se já estornada
+    TS->>MQ: transaction.reversed (via outbox)
     MQ->>CS: devolve valor ao saldo
     MQ->>OS: devolve valor ao orçamento
 ```
@@ -209,10 +209,10 @@ Transações **nunca são apagadas**, só estornadas. O histórico financeiro fi
 sequenceDiagram
     actor U as Usuário
     participant IA as assistente-ia-service
-    participant DB as Mongo (ia)
+    participant DB as Mongo (ai)
     participant CL as API Claude
 
-    U->>IA: GET /insights?mes=2026-10
+    U->>IA: GET /insights?month=2026-10
     IA->>DB: há insight em cache para o mês?
     alt existe e é recente
         DB-->>IA: insight
@@ -263,5 +263,5 @@ flowchart TD
 1. Alerta no Grafana: "DLQ com mensagens".
 2. Ver a mensagem no painel do RabbitMQ (http://localhost:15672) e o trace no Jaeger pelo `traceparent`.
 3. Corrigir a causa (bug, dado inválido etc.).
-4. Mover a mensagem de volta para a fila original (shovel ou endpoint administrativo `POST /admin/dlq/{fila}/reprocessar`).
+4. Mover a mensagem de volta para a fila original (shovel ou endpoint administrativo `POST /admin/dlq/{queue}/reprocess`).
 5. Como os consumidores são idempotentes, reprocessar é seguro.

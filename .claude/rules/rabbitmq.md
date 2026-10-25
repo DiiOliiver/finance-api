@@ -11,7 +11,7 @@ Complementa o `CLAUDE.md` (Outbox, idempotência, envelope, versões e nomes já
 ## Topologia
 - Exchanges, filas, bindings e DLQs são declarados no código (`RabbitTopologyConfig`) **e** em `deploy/rabbitmq/definitions.json`. Mantenha os dois iguais.
 - Filas do tipo `quorum` e duráveis. Mensagens persistentes.
-- Cada fila tem seu `x-dead-letter-exchange` apontando para `financas.dlx`.
+- Cada fila tem seu `x-dead-letter-exchange` apontando para `finance.dlx`.
 
 ## Publicação
 - Só o `OutboxRelay` publica. Use publisher confirms e marque a outbox como enviada apenas após o confirm.

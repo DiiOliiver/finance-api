@@ -90,16 +90,16 @@ Fluxo durante o desenvolvimento: **develop → branch → pull request → devel
 ## Regras de arquitetura (obrigatórias)
 
 ### Dependências entre camadas
-- Sentido único: `infra → application → domain`. O ArchUnit (`RegrasDeCamadasTest`) quebra o build se for violado.
+- Sentido único: `infra → application → domain`. O ArchUnit (`LayerRulesTest`) quebra o build se for violado.
 - **domain** é Java puro: nada de `org.springframework`, `@Document`, Jackson, Lombok, HTTP ou Mongo.
 - **application** não conhece tecnologia: sem Spring Data, RabbitMQ, `RestClient`, Resilience4j. Não leva anotações do Spring. Os beans dos casos de uso são criados em `infra/config/UseCaseConfig`.
 - **infra** não contém regra de negócio. Controllers, listeners e adaptadores só convertem dados e delegam para casos de uso ou portas.
 
 ### Domínio
-- Regras e invariantes ficam **dentro** das entidades e value objects, com construtores ou fábricas que validam (`Transacao.nova(...)`, `Valor.de(...)`).
+- Regras e invariantes ficam **dentro** das entidades e value objects, com construtores ou fábricas que validam (`Transaction.create(...)`, `Amount.of(...)`).
 - IDs são `UUID` gerados no domínio, nunca pelo banco.
 - Dinheiro é `BigDecimal` no Java e `Decimal128` no Mongo. **Nunca use `double` ou `float`.**
-- Eventos de domínio são nomeados no passado (`TransacaoRegistrada`).
+- Eventos de domínio são nomeados no passado (`TransactionRegistered`).
 - Transações não são apagadas, só estornadas.
 
 ### Entre serviços
@@ -110,30 +110,30 @@ Fluxo durante o desenvolvimento: **develop → branch → pull request → devel
 ### Circuit breaker e resiliência
 - **Toda** chamada externa (outro serviço, RustFS, API do Claude) fica num adaptador em `infra/` com `@CircuitBreaker` e `fallbackMethod`. Use também `@Retry` e/ou `@TimeLimiter` quando fizer sentido.
 - O nome do circuito é o nome do destino: `conta-service`, `rustfs`, `claude-api`.
-- A configuração fica em `application.yml` (`resilience4j.*`), herdando `base-config: padrao`.
-- Exceções de negócio estendem `NegocioException` e ficam em `ignore-exceptions`, para que um 404 não abra o circuito.
+- A configuração fica em `application.yml` (`resilience4j.*`), herdando `base-config: default`.
+- Exceções de negócio estendem `BusinessException` e ficam em `ignore-exceptions`, para que um 404 não abra o circuito.
 - Fallbacks seguem o padrão já definido:
-  - `conta-service` → `ServicoIndisponivelException` (HTTP 503)
-  - `claude-api` → `Categoria.NAO_CLASSIFICADA` + reprocessamento
-  - `rustfs` → status `PENDENTE_UPLOAD` / 503 apenas na operação de arquivo
+  - `conta-service` → `ServiceUnavailableException` (HTTP 503)
+  - `claude-api` → `Category.UNCLASSIFIED` + reprocessamento
+  - `rustfs` → status `PENDING_UPLOAD` / 503 apenas na operação de arquivo
 - Nunca coloque anotações de resiliência em `application` ou `domain`.
 
 ### Mensageria
 - Eventos são publicados **via Outbox** (gravação na mesma transação Mongo + `OutboxRelay`). Nunca publique direto no RabbitMQ a partir de um caso de uso.
-- Todo consumidor é **idempotente**: registre o `eventId` em `eventos_processados`.
+- Todo consumidor é **idempotente**: registre o `eventId` em `processed_events`.
 - Use o envelope padrão (`eventId`, `type`, `version`, `occurredAt`, `traceparent`, `payload`).
 - Ao mudar um contrato de forma incompatível, crie uma nova versão (`V2`) em vez de alterar a `V1`.
-- Nomes: exchange `financas.eventos` (topic), routing key `<agregado>.<evento>`, fila `<servico-consumidor>.<evento>`, com DLQ.
+- Nomes: exchange `finance.events` (topic), routing key `<agregado>.<evento>`, fila `<servico-consumidor>.<evento>`, com DLQ.
 
 ### MongoDB
-- A entidade de domínio e o documento são classes diferentes (`Transacao` ≠ `TransacaoDocument`), ligadas por um mapper.
+- A entidade de domínio e o documento são classes diferentes (`Transaction` ≠ `TransactionDocument`), ligadas por um mapper.
 - UUID com `representation.uuid: standard`.
 - Índices criados por changeset do Mongock em `infra/persistence/mongo/migration/`, não por `auto-index-creation`.
 
 ### RustFS
 - Acesso via AWS SDK v2 com `pathStyleAccess = true`.
 - Upload e download por **URL pré-assinada**. Arquivos não trafegam pelo serviço.
-- Chave do objeto: `{usuarioId}/{ano}/{mes}/{uuid}.{ext}`.
+- Chave do objeto: `{userId}/{year}/{month}/{uuid}.{ext}`.
 
 ### IA (Claude)
 - Só o `assistente-ia-service` chama a API da Anthropic, via Spring AI.
@@ -151,7 +151,7 @@ Fluxo durante o desenvolvimento: **develop → branch → pull request → devel
 - Injeção por construtor, nunca `@Autowired` em campo.
 - Erros HTTP no formato Problem Details (RFC 9457), via `ProblemDetailsHandler` do commons.
 - Logs estruturados, sem dados sensíveis, sem `System.out`.
-- Código em **inglês** (classes, métodos, variáveis, mensagens de log e de exceção); apenas comentários em **português**. Detalhes e equivalência dos nomes legados em `.claude/rules/idioma-codigo.md`.
+- Código em **inglês** (classes, métodos, variáveis, mensagens de log e de exceção); apenas comentários em **português**. Detalhes e glossário português → inglês em `.claude/rules/idioma-codigo.md`.
 
 | Item | Padrão |
 |---|---|
@@ -181,7 +181,7 @@ Todo código novo vem com teste na camada correspondente:
 ## Observabilidade
 
 - Novas integrações devem propagar o trace (HTTP já é automático; RabbitMQ via `traceparent` no header).
-- Métricas de negócio relevantes via Micrometer (ex.: `financas.transacoes.registradas`).
+- Métricas de negócio relevantes via Micrometer (ex.: `finance.transactions.registered`).
 - Novo circuito ou fila importante → avaliar painel/alerta em `deploy/grafana/dashboards/`.
 
 ## Documentação

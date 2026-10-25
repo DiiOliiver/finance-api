@@ -90,10 +90,10 @@ Com vários departamentos, quando algo dá errado é preciso saber **onde**. Os 
 | **Adaptador (Adapter)** | Implementação concreta de uma porta usando uma tecnologia |
 | **Caso de uso (Use Case)** | Uma ação do sistema do ponto de vista do usuário, ex.: "registrar transação" |
 | **Entidade** | Objeto de negócio com identidade própria (ex.: Transação com UUID) |
-| **Value Object** | Objeto definido só pelo valor e imutável (ex.: `Valor` = 100 BRL) |
+| **Value Object** | Objeto definido só pelo valor e imutável (ex.: `Amount` = 100 BRL) |
 | **Agregado** | Grupo de objetos tratados como uma unidade de consistência, com uma entidade "raiz" |
 | **Invariante** | Regra que precisa ser verdadeira sempre (ex.: valor > 0) |
-| **Evento de domínio** | Registro de algo que aconteceu no negócio, nomeado no passado (`TransacaoRegistrada`) |
+| **Evento de domínio** | Registro de algo que aconteceu no negócio, nomeado no passado (`TransactionRegistered`) |
 | **DTO / Command** | Objeto simples só para transportar dados entre camadas |
 | **Mapper** | Código que converte um formato de objeto em outro (ex.: Document ↔ Entidade) |
 | **Database per service** | Cada microsserviço tem seu banco e nenhum outro acessa diretamente |
@@ -170,7 +170,7 @@ Com vários departamentos, quando algo dá errado é preciso saber **onde**. Os 
 | **RabbitMQ** | Message broker que recebe, guarda e entrega mensagens entre serviços |
 | **AMQP** | Protocolo de mensagens usado pelo RabbitMQ |
 | **Exchange** | Recebe mensagens e decide para quais filas vão |
-| **Topic exchange** | Exchange que roteia por padrão de routing key (ex.: `transacao.*`) |
+| **Topic exchange** | Exchange que roteia por padrão de routing key (ex.: `transaction.*`) |
 | **Routing key** | "Endereço" da mensagem usado pelo exchange |
 | **Fila (Queue)** | Lugar onde as mensagens esperam para ser consumidas |
 | **Binding** | Ligação entre exchange e fila |

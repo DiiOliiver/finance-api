@@ -130,7 +130,7 @@ RABBITMQ_PASSWORD=financas
 # RustFS (S3)
 RUSTFS_ACCESS_KEY=rustfsadmin
 RUSTFS_SECRET_KEY=rustfsadmin
-RUSTFS_BUCKET_COMPROVANTES=comprovantes
+RUSTFS_BUCKET_RECEIPTS=receipts
 
 # Observabilidade
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
@@ -218,14 +218,14 @@ Ordem recomendada de subida:
 curl http://localhost:8082/actuator/health
 
 # Criar uma conta
-curl -X POST http://localhost:8080/api/contas \
+curl -X POST http://localhost:8080/api/accounts \
   -H "Content-Type: application/json" \
-  -d '{"nome": "Conta Corrente", "saldoInicial": 1000.00, "moeda": "BRL"}'
+  -d '{"name": "Conta Corrente", "initialBalance": 1000.00, "currency": "BRL"}'
 
 # Lançar uma despesa (use o id retornado acima)
-curl -X POST http://localhost:8080/api/transacoes \
+curl -X POST http://localhost:8080/api/transactions \
   -H "Content-Type: application/json" \
-  -d '{"contaId": "<uuid>", "tipo": "DESPESA", "valor": 59.90, "descricao": "Mercado"}'
+  -d '{"accountId": "<uuid>", "type": "EXPENSE", "amount": 59.90, "description": "Mercado"}'
 ```
 
 ---
@@ -248,10 +248,10 @@ curl -X POST http://localhost:8080/api/transacoes \
 ./mvnw -pl transacao-service verify
 
 # Só uma classe
-./mvnw -pl transacao-service test -Dtest=RegistrarTransacaoServiceTest
+./mvnw -pl transacao-service test -Dtest=RegisterTransactionServiceTest
 
 # Só um teste de integração
-./mvnw -pl transacao-service verify -Dit.test=TransacaoMongoRepositoryAdapterIT
+./mvnw -pl transacao-service verify -Dit.test=TransactionMongoRepositoryAdapterIT
 
 # Pular os testes de integração
 ./mvnw verify -DskipITs
@@ -377,7 +377,7 @@ http_server_requests_seconds_bucket
 |---|---|---|
 | Testes `*IT` falham com "Could not find a valid Docker environment" | Docker parado | Inicie o Docker e rode de novo |
 | `Unsupported class file major version` | JDK diferente do 25 | Ajuste `JAVA_HOME` para o JDK 25 |
-| Transações salvas como `NAO_CLASSIFICADA` | Circuit breaker da IA aberto ou `ANTHROPIC_API_KEY` inválida | Verifique a chave e `/actuator/circuitbreakers` |
+| Transações salvas como `UNCLASSIFIED` | Circuit breaker da IA aberto ou `ANTHROPIC_API_KEY` inválida | Verifique a chave e `/actuator/circuitbreakers` |
 | Erro 503 ao lançar transação | `conta-service` fora do ar (circuito aberto) | Suba o `conta-service`; o circuito fecha sozinho |
 | UUID aparece como binário estranho no Mongo | Representação de UUID não configurada | Confira `representation.uuid: standard` no YAML |
 | Porta já em uso | Outro processo usando a porta | `docker compose down` ou altere a porta no `.env` |

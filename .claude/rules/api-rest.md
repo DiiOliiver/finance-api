@@ -9,8 +9,8 @@ Complementa o `CLAUDE.md` (Problem Details já é obrigatório lá).
 
 ## Recursos e URLs
 - Recursos no plural, em inglês, minúsculas e kebab-case: `/accounts`, `/transactions`, `/receipts`.
-- O gateway expõe com prefixo `/api` (`/api/transacoes`). Cada serviço expõe sem o prefixo (`/transacoes`).
-- Ações que não são CRUD viram sub-recurso com substantivo: `POST /transacoes/{id}/estorno`, `POST /comprovantes/{id}/confirmacao`.
+- O gateway expõe com prefixo `/api` (`/api/transactions`). Cada serviço expõe sem o prefixo (`/transactions`).
+- Ações que não são CRUD viram sub-recurso com substantivo: `POST /transactions/{id}/reversal`, `POST /receipts/{id}/confirm`.
 - IDs no caminho são UUID. Valide o formato e devolva 400 se inválido.
 
 ## Métodos e status
@@ -28,7 +28,7 @@ Complementa o `CLAUDE.md` (Problem Details já é obrigatório lá).
 ## Contratos
 - Request e response são `record` próprios da camada web (`*Request`, `*HttpResponse`). Nunca exponha entidade de domínio nem `*Document`.
 - Bean Validation (`@NotNull`, `@Positive`, `@Size`...) só nos `*Request`. O domínio continua validando a si mesmo.
-- JSON em `camelCase`. Datas em ISO-8601 UTC (`2026-10-21T04:13:00Z`). Valores monetários como `valor` + `moeda`.
+- JSON em `camelCase`. Datas em ISO-8601 UTC (`2026-10-21T04:13:00Z`). Valores monetários como `amount` + `currency`.
 - Configure o Jackson com `USE_BIG_DECIMAL_FOR_FLOATS` para não perder precisão.
 
 ## Listagens
@@ -45,4 +45,4 @@ Complementa o `CLAUDE.md` (Problem Details já é obrigatório lá).
 
 ## Segurança
 - Nunca devolva stack trace, nome de classe ou mensagem interna no corpo de erro.
-- O `usuarioId` vem do token validado no gateway. Nunca aceite `usuarioId` no corpo ou na query.
+- O `userId` vem do token validado no gateway. Nunca aceite `userId` no corpo ou na query.

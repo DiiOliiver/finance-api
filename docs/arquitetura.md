@@ -35,11 +35,11 @@ flowchart LR
     MQ --> NS[notificacao-service]
     MQ --> CS
 
-    CS --- M1[(Mongo contas)]
-    TS --- M2[(Mongo transacoes)]
-    OS --- M3[(Mongo orcamentos)]
-    DS --- M4[(Mongo documentos)]
-    IA --- M5[(Mongo ia)]
+    CS --- M1[(Mongo accounts)]
+    TS --- M2[(Mongo transactions)]
+    OS --- M3[(Mongo budgets)]
+    DS --- M4[(Mongo documents)]
+    IA --- M5[(Mongo ai)]
     DS -- S3 + CB --> RF[(RustFS)]
     IA -- HTTPS + CB --> CL[API Claude]
 ```
@@ -58,12 +58,12 @@ Princípios que guiam o desenho:
 | Serviço | Porta | Dono de | Publica | Consome |
 |---|---|---|---|---|
 | `api-gateway` | 8080 | Roteamento, autenticação, rate limit | — | — |
-| `conta-service` | 8081 | Contas, carteiras, saldo | `SaldoAtualizado` | `TransacaoRegistrada`, `TransacaoEstornada` |
-| `transacao-service` | 8082 | Receitas e despesas | `TransacaoRegistrada`, `TransacaoEstornada` | `TransacaoCategorizada`, `ComprovanteAnexado` |
-| `orcamento-service` | 8083 | Orçamentos e metas | `OrcamentoExcedido`, `MetaAtingida` | `TransacaoRegistrada`, `TransacaoCategorizada` |
-| `documento-service` | 8084 | Comprovantes (metadados + arquivos) | `ComprovanteAnexado` | — |
-| `assistente-ia-service` | 8085 | Categorização e insights | `TransacaoCategorizada` | `TransacaoRegistrada` |
-| `notificacao-service` | 8086 | E-mail e push | — | `OrcamentoExcedido`, `MetaAtingida` |
+| `conta-service` | 8081 | Contas, carteiras, saldo | `BalanceUpdated` | `TransactionRegistered`, `TransactionReversed` |
+| `transacao-service` | 8082 | Receitas e despesas | `TransactionRegistered`, `TransactionReversed` | `TransactionCategorized`, `ReceiptAttached` |
+| `orcamento-service` | 8083 | Orçamentos e metas | `BudgetExceeded`, `GoalReached` | `TransactionRegistered`, `TransactionCategorized` |
+| `documento-service` | 8084 | Comprovantes (metadados + arquivos) | `ReceiptAttached` | — |
+| `assistente-ia-service` | 8085 | Categorização e insights | `TransactionCategorized` | `TransactionRegistered` |
+| `notificacao-service` | 8086 | E-mail e push | — | `BudgetExceeded`, `GoalReached` |
 
 ---
 
@@ -112,24 +112,24 @@ flowchart TB
 ### Exemplo de caso de uso
 
 ```java
-// application/usecase/RegistrarTransacaoService.java
-public class RegistrarTransacaoService implements RegistrarTransacaoUseCase {
+// application/usecase/RegisterTransactionService.java
+public class RegisterTransactionService implements RegisterTransactionUseCase {
 
-    private final ContaClientPort contas;
-    private final TransacaoRepositoryPort repositorio;
-    private final EventPublisherPort eventos;
+    private final AccountClientPort accounts;
+    private final TransactionRepositoryPort repository;
+    private final EventPublisherPort events;
 
     @Override
-    public TransacaoResponse executar(RegistrarTransacaoCommand cmd) {
-        contas.buscar(cmd.contaId());                       // valida a conta (CB na infra)
+    public TransactionResponse execute(RegisterTransactionCommand cmd) {
+        accounts.findById(cmd.accountId());                 // valida a conta (CB na infra)
 
-        var transacao = Transacao.nova(cmd.contaId(), cmd.tipo(),
-                Valor.de(cmd.valor(), cmd.moeda()), cmd.descricao());
+        var transaction = Transaction.create(cmd.accountId(), cmd.type(),
+                Amount.of(cmd.amount(), cmd.currency()), cmd.description());
 
-        repositorio.salvar(transacao);
-        eventos.publicar(transacao.eventoRegistrada());     // vai para a outbox
+        repository.save(transaction);
+        events.publish(transaction.registeredEvent());      // vai para a outbox
 
-        return TransacaoResponse.de(transacao);
+        return TransactionResponse.from(transaction);
     }
 }
 ```
@@ -175,31 +175,31 @@ Sempre na camada **infra**, nos adaptadores que falam com algo externo.
 
 | Circuito | Adaptador | Fallback |
 |---|---|---|
-| `conta-service` | `ContaClientAdapter` | Lança `ServicoIndisponivelException` → HTTP 503 |
-| `claude-api` | `ClaudeCategorizadorAdapter` | `Categoria.NAO_CLASSIFICADA` + reprocessamento posterior |
-| `rustfs` | `RustFsComprovanteAdapter` | Status do anexo `PENDENTE_UPLOAD` + nova tentativa agendada |
+| `conta-service` | `AccountClientAdapter` | Lança `ServiceUnavailableException` → HTTP 503 |
+| `claude-api` | `ClaudeCategorizerAdapter` | `Category.UNCLASSIFIED` + reprocessamento posterior |
+| `rustfs` | `RustFsReceiptAdapter` | Status do anexo `PENDING_UPLOAD` + nova tentativa agendada |
 
 ### Exemplo
 
 ```java
 @Component
-class ContaClientAdapter implements ContaClientPort {
+class AccountClientAdapter implements AccountClientPort {
 
-    private final ContaHttpClient http;
+    private final AccountHttpClient http;
 
-    @CircuitBreaker(name = "conta-service", fallbackMethod = "contaIndisponivel")
+    @CircuitBreaker(name = "conta-service", fallbackMethod = "accountUnavailable")
     @Retry(name = "conta-service")
-    public ContaResumo buscar(UUID contaId) {
-        return http.buscar(contaId);
+    public AccountSummary findById(UUID accountId) {
+        return http.findById(accountId);
     }
 
-    private ContaResumo contaIndisponivel(UUID contaId, Throwable causa) {
-        throw new ServicoIndisponivelException("conta-service", causa);
+    private AccountSummary accountUnavailable(UUID accountId, Throwable cause) {
+        throw new ServiceUnavailableException("conta-service", cause);
     }
 }
 ```
 
-> Exceções de negócio (ex.: `ContaNaoEncontradaException`, HTTP 404) **não** contam como falha do circuito. Configure-as em `ignore-exceptions`.
+> Exceções de negócio (ex.: `AccountNotFoundException`, HTTP 404) **não** contam como falha do circuito. Configure-as em `ignore-exceptions`.
 
 ### Configuração (YAML)
 
@@ -207,7 +207,7 @@ class ContaClientAdapter implements ContaClientPort {
 resilience4j:
   circuitbreaker:
     configs:
-      padrao:
+      default:
         sliding-window-size: 20
         minimum-number-of-calls: 10
         failure-rate-threshold: 50
@@ -218,14 +218,14 @@ resilience4j:
           - java.util.concurrent.TimeoutException
           - org.springframework.web.client.HttpServerErrorException
         ignore-exceptions:
-          - br.com.finance.commons.exception.NegocioException
+          - br.com.finance.commons.exception.BusinessException
     instances:
       conta-service:
-        base-config: padrao
+        base-config: default
       rustfs:
-        base-config: padrao
+        base-config: default
       claude-api:
-        base-config: padrao
+        base-config: default
         failure-rate-threshold: 40
         slow-call-duration-threshold: 8s
         slow-call-rate-threshold: 50
@@ -249,19 +249,19 @@ resilience4j:
 
 ## 6. Persistência (MongoDB + UUID)
 
-- **Um database por serviço:** `contas`, `transacoes`, `orcamentos`, `documentos`, `ia`.
+- **Um database por serviço:** `accounts`, `transactions`, `budgets`, `documents`, `ai`.
 - **IDs são UUID gerados na aplicação** (no domínio), não pelo banco. Assim a entidade já nasce com identidade e o evento pode ser publicado com o ID certo.
 - UUID gravado no formato **standard** (binário subtipo 4):
 
 ```yaml
 spring:
   mongodb:
-    uri: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@localhost:27017/transacoes?authSource=admin
+    uri: mongodb://${MONGO_ROOT_USER}:${MONGO_ROOT_PASSWORD}@localhost:27017/transactions?authSource=admin
     representation:
       uuid: standard
 ```
 
-- A entidade de domínio (`Transacao`) é diferente do documento do Mongo (`TransacaoDocument`). Um mapper converte entre os dois, e o domínio não recebe anotações `@Document`.
+- A entidade de domínio (`Transaction`) é diferente do documento do Mongo (`TransactionDocument`). Um mapper converte entre os dois, e o domínio não recebe anotações `@Document`.
 - Valores monetários usam `Decimal128` no Mongo e `BigDecimal` no Java. **Nunca `double`.**
 - Índices criados por migração (Mongock), não por `auto-index-creation`.
 
@@ -270,7 +270,7 @@ spring:
 ## 7. Object storage (RustFS)
 
 - Acesso pela **API S3** com o AWS SDK v2, usando endpoint customizado e `pathStyleAccess = true`.
-- Bucket `comprovantes`, com chave no formato `{usuarioId}/{ano}/{mes}/{uuid}.{ext}`.
+- Bucket `receipts`, com chave no formato `{userId}/{year}/{month}/{uuid}.{ext}`.
 - **Upload e download por URL pré-assinada**: o arquivo vai direto do cliente para o RustFS, sem passar pelo serviço. O serviço só gera o link e guarda os metadados.
 - Metadados (nome, tamanho, tipo, hash, transação vinculada) ficam no Mongo do `documento-service`.
 
@@ -282,12 +282,12 @@ spring:
 
 ```mermaid
 flowchart LR
-    TS[transacao-service] --> EX{{financas.eventos<br/>topic exchange}}
-    EX -- transacao.registrada --> Q1[orcamento.transacao-registrada]
-    EX -- transacao.registrada --> Q2[ia.transacao-registrada]
-    EX -- transacao.registrada --> Q3[conta.transacao-registrada]
-    EX -- orcamento.excedido --> Q4[notificacao.orcamento-excedido]
-    Q1 -. falha repetida .-> DLX{{financas.dlx}}
+    TS[transacao-service] --> EX{{finance.events<br/>topic exchange}}
+    EX -- transaction.registered --> Q1[orcamento.transaction-registered]
+    EX -- transaction.registered --> Q2[ia.transaction-registered]
+    EX -- transaction.registered --> Q3[conta.transaction-registered]
+    EX -- budget.exceeded --> Q4[notificacao.budget-exceeded]
+    Q1 -. falha repetida .-> DLX{{finance.dlx}}
     DLX --> DLQ[*.dlq]
 ```
 
@@ -299,11 +299,11 @@ flowchart LR
 ```json
 {
   "eventId": "8f0d1e7a-...-uuid",
-  "type": "TransacaoRegistrada",
+  "type": "TransactionRegistered",
   "version": 1,
   "occurredAt": "2026-10-20T21:37:00Z",
   "traceparent": "00-...",
-  "payload": { "transacaoId": "...", "contaId": "...", "valor": 59.90 }
+  "payload": { "transactionId": "...", "accountId": "...", "amount": 59.90 }
 }
 ```
 
@@ -318,9 +318,9 @@ sequenceDiagram
 
     UC->>DB: salva transação + documento na coleção outbox (mesma transação)
     loop a cada 1s
-        OB->>DB: busca eventos PENDENTE
+        OB->>DB: busca eventos PENDING
         OB->>MQ: publica (com publisher confirm)
-        OB->>DB: marca como ENVIADO
+        OB->>DB: marca como SENT
     end
 ```
 
@@ -328,7 +328,7 @@ sequenceDiagram
 
 ### Idempotência no consumidor
 
-Cada consumidor grava o `eventId` processado na coleção `eventos_processados` (com índice único). Se o mesmo evento chegar de novo, ele é ignorado.
+Cada consumidor grava o `eventId` processado na coleção `processed_events` (com índice único). Se o mesmo evento chegar de novo, ele é ignorado.
 
 ---
 
@@ -337,9 +337,9 @@ Cada consumidor grava o `eventId` processado na coleção `eventos_processados` 
 - Fica isolada no `assistente-ia-service`. Nenhum outro serviço chama a Anthropic diretamente.
 - Implementada com **Spring AI** (`spring-ai-starter-model-anthropic`).
 - Usos:
-  - **Categorização:** recebe `TransacaoRegistrada`, pede ao Claude uma categoria dentro de uma lista fechada e publica `TransacaoCategorizada`.
+  - **Categorização:** recebe `TransactionRegistered`, pede ao Claude uma categoria dentro de uma lista fechada e publica `TransactionCategorized`.
   - **Insights:** endpoint sob demanda que resume os gastos do mês.
-- A resposta é pedida em **saída estruturada (JSON)** e validada. Categoria fora da lista vira `NAO_CLASSIFICADA`.
+- A resposta é pedida em **saída estruturada (JSON)** e validada. Categoria fora da lista vira `UNCLASSIFIED`.
 - Protegida por circuit breaker + time limiter. Com o circuito aberto, a transação continua válida e é recategorizada depois.
 - Dados sensíveis (nome do titular, número da conta) **não** são enviados no prompt.
 

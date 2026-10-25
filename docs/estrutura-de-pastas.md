@@ -111,22 +111,22 @@ shared/
 ├── financas-eventos/
 │   ├── pom.xml
 │   └── src/main/java/br/com/finance/eventos/
-│       ├── EnvelopeEvento.java              ← eventId, type, version, occurredAt, payload
+│       ├── EventEnvelope.java               ← eventId, type, version, occurredAt, payload
 │       ├── transacao/
-│       │   ├── TransacaoRegistradaV1.java
-│       │   ├── TransacaoEstornadaV1.java
-│       │   └── TransacaoCategorizadaV1.java
+│       │   ├── TransactionRegisteredV1.java
+│       │   ├── TransactionReversedV1.java
+│       │   └── TransactionCategorizedV1.java
 │       ├── orcamento/
-│       │   └── OrcamentoExcedidoV1.java
+│       │   └── BudgetExceededV1.java
 │       └── documento/
-│           └── ComprovanteAnexadoV1.java
+│           └── ReceiptAttachedV1.java
 │
 └── financas-commons/
     ├── pom.xml
     └── src/main/java/br/com/finance/commons/
         ├── exception/
-        │   ├── NegocioException.java        ← base das exceções de negócio (ignorada pelo CB)
-        │   └── ServicoIndisponivelException.java
+        │   ├── BusinessException.java       ← base das exceções de negócio (ignorada pelo CB)
+        │   └── ServiceUnavailableException.java
         ├── web/
         │   └── ProblemDetailsHandler.java   ← respostas de erro padronizadas (RFC 9457)
         └── observability/
@@ -148,57 +148,57 @@ transacao-service/
 └── src/
     ├── main/
     │   ├── java/br/com/finance/transacao/
-    │   │   ├── TransacaoApplication.java
+    │   │   ├── TransacaoServiceApplication.java
     │   │   │
     │   │   ├── domain/                              ══ DOMÍNIO (Java puro) ══
     │   │   │   ├── model/
-    │   │   │   │   ├── Transacao.java               entidade / agregado raiz
-    │   │   │   │   ├── TransacaoId.java             record com UUID
-    │   │   │   │   ├── Valor.java                   value object: BigDecimal + moeda
-    │   │   │   │   ├── TipoTransacao.java           enum RECEITA / DESPESA
-    │   │   │   │   ├── StatusTransacao.java         enum ATIVA / ESTORNADA
-    │   │   │   │   └── Categoria.java
+    │   │   │   │   ├── Transaction.java             entidade / agregado raiz
+    │   │   │   │   ├── TransactionId.java           record com UUID
+    │   │   │   │   ├── Amount.java                  value object: BigDecimal + moeda
+    │   │   │   │   ├── TransactionType.java         enum INCOME / EXPENSE
+    │   │   │   │   ├── TransactionStatus.java       enum ACTIVE / REVERSED
+    │   │   │   │   └── Category.java
     │   │   │   ├── event/
-    │   │   │   │   ├── EventoDominio.java           interface marcadora
-    │   │   │   │   ├── TransacaoRegistrada.java
-    │   │   │   │   └── TransacaoEstornada.java
+    │   │   │   │   ├── DomainEvent.java             interface marcadora
+    │   │   │   │   ├── TransactionRegistered.java
+    │   │   │   │   └── TransactionReversed.java
     │   │   │   └── exception/
-    │   │   │       ├── TransacaoInvalidaException.java
-    │   │   │       └── TransacaoJaEstornadaException.java
+    │   │   │       ├── InvalidTransactionException.java
+    │   │   │       └── TransactionAlreadyReversedException.java
     │   │   │
     │   │   ├── application/                         ══ APLICAÇÃO (casos de uso) ══
     │   │   │   ├── port/
     │   │   │   │   ├── in/                          o que o serviço oferece
-    │   │   │   │   │   ├── RegistrarTransacaoUseCase.java
-    │   │   │   │   │   ├── EstornarTransacaoUseCase.java
-    │   │   │   │   │   ├── ListarTransacoesUseCase.java
-    │   │   │   │   │   └── AplicarCategoriaUseCase.java
+    │   │   │   │   │   ├── RegisterTransactionUseCase.java
+    │   │   │   │   │   ├── ReverseTransactionUseCase.java
+    │   │   │   │   │   ├── ListTransactionsUseCase.java
+    │   │   │   │   │   └── ApplyCategoryUseCase.java
     │   │   │   │   └── out/                         o que o serviço precisa
-    │   │   │   │       ├── TransacaoRepositoryPort.java
-    │   │   │   │       ├── ContaClientPort.java
+    │   │   │   │       ├── TransactionRepositoryPort.java
+    │   │   │   │       ├── AccountClientPort.java
     │   │   │   │       └── EventPublisherPort.java
     │   │   │   ├── usecase/
-    │   │   │   │   ├── RegistrarTransacaoService.java
-    │   │   │   │   ├── EstornarTransacaoService.java
-    │   │   │   │   ├── ListarTransacoesService.java
-    │   │   │   │   └── AplicarCategoriaService.java
+    │   │   │   │   ├── RegisterTransactionService.java
+    │   │   │   │   ├── ReverseTransactionService.java
+    │   │   │   │   ├── ListTransactionsService.java
+    │   │   │   │   └── ApplyCategoryService.java
     │   │   │   └── dto/
-    │   │   │       ├── RegistrarTransacaoCommand.java
-    │   │   │       ├── FiltroTransacoes.java
-    │   │   │       ├── ContaResumo.java
-    │   │   │       └── TransacaoResponse.java
+    │   │   │       ├── RegisterTransactionCommand.java
+    │   │   │       ├── TransactionFilter.java
+    │   │   │       ├── AccountSummary.java
+    │   │   │       └── TransactionResponse.java
     │   │   │
     │   │   └── infra/                               ══ INFRAESTRUTURA (adaptadores) ══
     │   │       ├── web/
-    │   │       │   ├── TransacaoController.java
-    │   │       │   ├── request/RegistrarTransacaoRequest.java
-    │   │       │   ├── response/TransacaoHttpResponse.java
-    │   │       │   └── mapper/TransacaoWebMapper.java
+    │   │       │   ├── TransactionController.java
+    │   │       │   ├── request/RegisterTransactionRequest.java
+    │   │       │   ├── response/TransactionHttpResponse.java
+    │   │       │   └── mapper/TransactionWebMapper.java
     │   │       ├── persistence/mongo/
-    │   │       │   ├── TransacaoDocument.java       @Document (só aqui!)
-    │   │       │   ├── TransacaoMongoRepository.java  Spring Data
-    │   │       │   ├── TransacaoRepositoryAdapter.java implementa TransacaoRepositoryPort
-    │   │       │   ├── mapper/TransacaoDocumentMapper.java
+    │   │       │   ├── TransactionDocument.java     @Document (só aqui!)
+    │   │       │   ├── TransactionMongoRepository.java Spring Data
+    │   │       │   ├── TransactionRepositoryAdapter.java implementa TransactionRepositoryPort
+    │   │       │   ├── mapper/TransactionDocumentMapper.java
     │   │       │   └── migration/                   changesets do Mongock (índices)
     │   │       ├── messaging/rabbit/
     │   │       │   ├── RabbitTopologyConfig.java    exchange, filas, bindings, DLQ
@@ -207,10 +207,10 @@ transacao-service/
     │   │       │   │   ├── OutboxEventPublisher.java   implementa EventPublisherPort
     │   │       │   │   └── OutboxRelay.java            @Scheduled → RabbitMQ
     │   │       │   └── listener/
-    │   │       │       └── TransacaoCategorizadaListener.java
-    │   │       ├── client/conta/
-    │   │       │   ├── ContaHttpClient.java         HTTP Interface (@GetExchange)
-    │   │       │   └── ContaClientAdapter.java      ← @CircuitBreaker + @Retry
+    │   │       │       └── TransactionCategorizedListener.java
+    │   │       ├── client/account/
+    │   │       │   ├── AccountHttpClient.java      HTTP Interface (@GetExchange)
+    │   │       │   └── AccountClientAdapter.java   ← @CircuitBreaker + @Retry
     │   │       └── config/
     │   │           ├── UseCaseConfig.java           cria os beans dos casos de uso
     │   │           ├── HttpClientConfig.java
@@ -234,10 +234,10 @@ Para manter a camada `application` **sem anotações do Spring**. Os serviços d
 @Configuration
 class UseCaseConfig {
     @Bean
-    RegistrarTransacaoUseCase registrarTransacao(ContaClientPort contas,
-                                                 TransacaoRepositoryPort repo,
-                                                 EventPublisherPort eventos) {
-        return new RegistrarTransacaoService(contas, repo, eventos);
+    RegisterTransactionUseCase registerTransaction(AccountClientPort accounts,
+                                                   TransactionRepositoryPort repository,
+                                                   EventPublisherPort events) {
+        return new RegisterTransactionService(accounts, repository, events);
     }
 }
 ```
@@ -246,8 +246,8 @@ class UseCaseConfig {
 
 | Serviço | Pastas extras em `infra/` |
 |---|---|
-| `documento-service` | `storage/rustfs/` → `RustFsConfig`, `RustFsComprovanteAdapter` (CB), `PresignedUrlGenerator` |
-| `assistente-ia-service` | `ai/claude/` → `ClaudeCategorizadorAdapter` (CB + TimeLimiter), `PromptTemplates`, `resources/prompts/*.st` |
+| `documento-service` | `storage/rustfs/` → `RustFsConfig`, `RustFsReceiptAdapter` (CB), `PresignedUrlGenerator` |
+| `assistente-ia-service` | `ai/claude/` → `ClaudeCategorizerAdapter` (CB + TimeLimiter), `PromptTemplates`, `resources/prompts/*.st` |
 | `notificacao-service` | `notifier/email/`, `notifier/push/` |
 | `api-gateway` | Sem `domain/`/`application/`. Só `config/` (rotas, segurança, rate limit) |
 
@@ -258,20 +258,20 @@ class UseCaseConfig {
 ```
 src/test/java/br/com/finance/transacao/
 ├── domain/                                  JUnit puro, sem Spring
-│   ├── model/TransacaoTest.java
-│   └── model/ValorTest.java
+│   ├── model/TransactionTest.java
+│   └── model/AmountTest.java
 ├── application/                             JUnit + Mockito
-│   └── usecase/RegistrarTransacaoServiceTest.java
+│   └── usecase/RegisterTransactionServiceTest.java
 ├── infra/                                   Testcontainers (*IT)
-│   ├── persistence/mongo/TransacaoRepositoryAdapterIT.java
+│   ├── persistence/mongo/TransactionRepositoryAdapterIT.java
 │   ├── messaging/rabbit/OutboxRelayIT.java
-│   ├── client/conta/ContaClientAdapterIT.java     ← simula falhas e verifica o CB
-│   └── web/TransacaoControllerIT.java
-├── arquitetura/
-│   └── RegrasDeCamadasTest.java             ArchUnit: domain não depende de infra etc.
+│   ├── client/account/AccountClientAdapterIT.java  ← simula falhas e verifica o CB
+│   └── web/TransactionControllerIT.java
+├── architecture/
+│   └── LayerRulesTest.java                  ArchUnit: domain não depende de infra etc.
 └── support/
     ├── ContainersConfig.java                @TestConfiguration com @ServiceConnection
-    └── fixtures/TransacaoFixtures.java
+    └── fixtures/TransactionFixtures.java
 
 src/test/resources/
 ├── application-test.yml
@@ -293,7 +293,7 @@ deploy/
 │   ├── rabbitmq.conf
 │   └── definitions.json         exchanges, filas e DLQs pré-criadas
 ├── rustfs/
-│   └── create-buckets.sh        cria o bucket "comprovantes"
+│   └── create-buckets.sh        cria o bucket "receipts"
 ├── otel-collector.yml           recebe OTLP e envia para o Jaeger
 ├── prometheus.yml               de onde coletar métricas (cada serviço /actuator/prometheus)
 └── grafana/
@@ -301,7 +301,7 @@ deploy/
     │   ├── datasources/datasources.yml
     │   └── dashboards/dashboards.yml
     └── dashboards/
-        ├── visao-geral.json
+        ├── overview.json
         ├── circuit-breakers.json
         └── rabbitmq.json
 ```
@@ -313,18 +313,18 @@ deploy/
 | Item | Padrão | Exemplo |
 |---|---|---|
 | Pacote base | `br.com.finance.<servico>` | `br.com.finance.transacao` |
-| Porta de entrada | `<Acao><Entidade>UseCase` | `RegistrarTransacaoUseCase` |
-| Implementação do caso de uso | `<Acao><Entidade>Service` | `RegistrarTransacaoService` |
-| Porta de saída | `<Coisa>Port` | `TransacaoRepositoryPort` |
-| Adaptador | `<Tecnologia/Coisa>Adapter` | `ContaClientAdapter` |
-| Documento Mongo | `<Entidade>Document` | `TransacaoDocument` |
-| Evento de domínio | Verbo no passado | `TransacaoRegistrada` |
-| Contrato de evento (lib) | `<Evento>V<n>` | `TransacaoRegistradaV1` |
-| Fila RabbitMQ | `<servico-consumidor>.<evento>` | `orcamento.transacao-registrada` |
-| Routing key | `<agregado>.<evento>` | `transacao.registrada` |
+| Porta de entrada | `<Acao><Entidade>UseCase` | `RegisterTransactionUseCase` |
+| Implementação do caso de uso | `<Acao><Entidade>Service` | `RegisterTransactionService` |
+| Porta de saída | `<Coisa>Port` | `TransactionRepositoryPort` |
+| Adaptador | `<Tecnologia/Coisa>Adapter` | `AccountClientAdapter` |
+| Documento Mongo | `<Entidade>Document` | `TransactionDocument` |
+| Evento de domínio | Verbo no passado | `TransactionRegistered` |
+| Contrato de evento (lib) | `<Evento>V<n>` | `TransactionRegisteredV1` |
+| Fila RabbitMQ | `<servico-consumidor>.<evento>` | `orcamento.transaction-registered` |
+| Routing key | `<agregado>.<evento>` | `transaction.registered` |
 | Circuit breaker | nome do destino | `conta-service`, `claude-api`, `rustfs` |
-| Teste unitário | `<Classe>Test` | `ValorTest` |
-| Teste de integração | `<Classe>IT` | `ContaClientAdapterIT` |
+| Teste unitário | `<Classe>Test` | `AmountTest` |
+| Teste de integração | `<Classe>IT` | `AccountClientAdapterIT` |
 
 ---
 
