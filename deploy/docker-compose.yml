@@ -1,0 +1,99 @@
+# Infraestrutura local. Uso (a partir da raiz do repositório):
+#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
+# Credenciais vêm do deploy/.env (modelo em deploy/.env.example); nenhum segredo fica neste arquivo.
+name: finance-api
+
+services:
+  mongo:
+    image: mongo:8.0
+    # Replica set com autenticação exige um keyFile. Com um nó só, ele pode ser gerado a cada
+    # inicialização; o entrypoint original da imagem segue rodando depois disso.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        head -c 756 /dev/urandom | base64 > /data/keyfile
+        chmod 400 /data/keyfile
+        chown 999:999 /data/keyfile
+        exec docker-entrypoint.sh "$$@"
+      - mongo-entrypoint
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all", "--keyFile", "/data/keyfile"]
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:?defina MONGO_ROOT_USER no deploy/.env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?defina MONGO_ROOT_PASSWORD no deploy/.env}
+    ports:
+      - "127.0.0.1:27017:27017"
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo/init-replica-set.js:/scripts/init-replica-set.js:ro
+    # Inicia o replica set na primeira vez e só fica saudável quando o nó vira primário
+    healthcheck:
+      test: >-
+        mongosh --quiet --authenticationDatabase admin
+        -u "$$MONGO_INITDB_ROOT_USERNAME" -p "$$MONGO_INITDB_ROOT_PASSWORD"
+        --file /scripts/init-replica-set.js
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    networks:
+      - finance-net
+
+  rabbitmq:
+    image: rabbitmq:4.1-management
+    # Nome do nó fixo (rabbit@rabbitmq): sem isso, cada container novo seria outro nó e
+    # ignoraria os dados já gravados no volume
+    hostname: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no deploy/.env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no deploy/.env}
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    # Confere todas as portas de escuta, inclusive a do painel (15672)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+    networks:
+      - finance-net
+
+  # Tarefa única: importa o deploy/rabbitmq/definitions.json pela API de gerenciamento e termina.
+  # A importação na inicialização do RabbitMQ não é usada porque desliga a criação do usuário
+  # padrão, o que obrigaria a versionar credenciais no definitions.json.
+  # Não tem healthcheck por não ficar em execução; a importação é idempotente.
+  rabbitmq-definitions:
+    image: curlimages/curl:8.11.1
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_USER: ${RABBITMQ_USER:?defina RABBITMQ_USER no deploy/.env}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:?defina RABBITMQ_PASSWORD no deploy/.env}
+    volumes:
+      - ./rabbitmq/definitions.json:/definitions.json:ro
+    entrypoint:
+      - sh
+      - -c
+      - >-
+        curl -fsS --retry 5 --retry-connrefused
+        -u "$$RABBITMQ_USER:$$RABBITMQ_PASSWORD"
+        -H "content-type: application/json"
+        -X POST --data-binary @/definitions.json
+        http://rabbitmq:15672/api/definitions
+        && echo "RabbitMQ definitions imported"
+    restart: "no"
+    networks:
+      - finance-net
+
+volumes:
+  mongo-data:
+  rabbitmq-data:
+
+networks:
+  finance-net:
+    name: finance-net

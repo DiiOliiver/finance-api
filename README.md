@@ -164,8 +164,19 @@ docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d
 Confira se tudo está saudável:
 
 ```bash
-docker compose -f deploy/docker-compose.yml ps
+docker compose -f deploy/docker-compose.yml ps -a
 ```
+
+Todos os serviços devem aparecer como `healthy`, exceto o `rabbitmq-definitions`: ele só importa as exchanges do `deploy/rabbitmq/definitions.json` pela API do RabbitMQ e termina com `Exited (0)`. Por isso não use `up --wait`: o Compose trata esse container encerrado como falha e retorna erro, mesmo com tudo saudável.
+
+**MongoDB em replica set.** O Mongo sobe como replica set de um nó (`rs0`), necessário para as transações da outbox. Na primeira subida o healthcheck inicia o replica set, então leva alguns segundos até ficar `healthy`. Para conectar:
+
+| De onde | URI |
+|---|---|
+| Serviço rodando na máquina (IDE) | `mongodb://<usuario>:<senha>@localhost:27017/<banco>?authSource=admin` |
+| Serviço rodando em container (`finance-net`) | `mongodb://<usuario>:<senha>@mongo:27017/<banco>?authSource=admin&directConnection=true` |
+
+O membro do replica set está registrado como `localhost:27017`; por isso, dentro da rede do Docker, é preciso `directConnection=true`.
 
 ### Opção B — Tudo em containers (infra + microsserviços)
 
