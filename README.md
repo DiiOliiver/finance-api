@@ -167,7 +167,7 @@ Confira se tudo está saudável:
 docker compose -f deploy/docker-compose.yml ps -a
 ```
 
-Todos os serviços devem aparecer como `healthy`, exceto o `rabbitmq-definitions`: ele só importa as exchanges do `deploy/rabbitmq/definitions.json` pela API do RabbitMQ e termina com `Exited (0)`.
+Todos os serviços devem aparecer como `healthy`, exceto o `rabbitmq-definitions`: ele só importa as exchanges do `deploy/rabbitmq/definitions.json` pela API do RabbitMQ e termina com `Exited (0)`. Por isso não use `up --wait`: o Compose trata esse container encerrado como falha e retorna erro, mesmo com tudo saudável.
 
 **MongoDB em replica set.** O Mongo sobe como replica set de um nó (`rs0`), necessário para as transações da outbox. Na primeira subida o healthcheck inicia o replica set, então leva alguns segundos até ficar `healthy`. Para conectar:
 
